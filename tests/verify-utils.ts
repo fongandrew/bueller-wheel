@@ -53,7 +53,7 @@ export async function runBueller(options: RunBuellerOptions = {}): Promise<{
 
 		const child = spawn('node', args, {
 			cwd: process.cwd(),
-			stdio: 'pipe',
+			stdio: ['ignore', 'pipe', 'pipe'], // stdin: ignore, stdout: pipe, stderr: pipe
 		});
 
 		let timedOut = false;

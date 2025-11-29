@@ -143,7 +143,8 @@ async function runTest(testName: string): Promise<TestResult> {
 		const outputFile = path.join(testTemp, BUELLER_OUTPUT_FILE);
 		console.log(`${colors.red}FAIL: ${testName}${colors.reset}`);
 
-		// Log the error details to console
+		// Collect error details
+		let errorOutput = '';
 		if (error instanceof Error) {
 			// Extract the actual error message from stderr
 			const stderr = (error as any).stderr?.toString() || '';
@@ -152,13 +153,29 @@ async function runTest(testName: string): Promise<TestResult> {
 			if (stderr) {
 				console.log(`${colors.red}Error output:${colors.reset}`);
 				console.log(stderr);
+				errorOutput += `Error output:\n${stderr}\n\n`;
 			}
 			if (stdout) {
 				console.log(`${colors.yellow}Standard output:${colors.reset}`);
 				console.log(stdout);
+				errorOutput += `Standard output:\n${stdout}\n\n`;
 			}
 			if (!stderr && !stdout && error.message) {
 				console.log(`${colors.red}Error: ${error.message}${colors.reset}`);
+				errorOutput += `Error: ${error.message}\n\n`;
+			}
+		}
+
+		// Write error details to output file
+		if (errorOutput) {
+			try {
+				const existingContent = await fs.readFile(outputFile, 'utf-8').catch(() => '');
+				const separator = existingContent ? '\n\n=== Test Runner Error ===\n\n' : '';
+				await fs.writeFile(outputFile, existingContent + separator + errorOutput);
+			} catch (_writeError) {
+				console.log(
+					`${colors.yellow}Warning: Could not write error to output file${colors.reset}`,
+				);
 			}
 		}
 
