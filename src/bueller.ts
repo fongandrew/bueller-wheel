@@ -221,7 +221,6 @@ function logToolUse(block: BetaToolUseBlock | ToolUseBlockParam): void {
 						process.stdout.write(todo.status);
 						break;
 				}
-				process.stdout.write(String(todo.status));
 				process.stdout.write(' ');
 				process.stdout.write(String(todo.content));
 			}
