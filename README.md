@@ -89,7 +89,7 @@ Here is a summary of the work I have done:
 
 - `--issues-dir <path>`: Issues directory (default: `./issues`)
 - `--max-iterations <number>`: Maximum iterations (default: `100`)
-- `--git-commit`: Enable automatic git commits when issues are completed (default: disabled)
+- `--git-commit`: Enable automatic git commits after each iteration (default: disabled)
 - `--prompt <path>`: Path to custom prompt template file (default: `<issues-dir>/prompt.md`)
 
 ### Custom Prompt Templates
@@ -139,19 +139,19 @@ When complete, move it to: ./issues/review/p0-100-task.md
 
 When `--git-commit` is enabled, Bueller will automatically create a git commit after each iteration where work was done on an issue.
 
-The commit message format is:
+The commit message format includes the full issue ID and status:
 ```
-[p0-002] Auto-commit
-
-🤖 Generated with Bueller
+p0-002-git done
+p0-002-git in progress
+p0-002-git stuck
+p0-002-git unknown
 ```
 
-The issue ID is extracted from the filename (e.g., `p0-002-git.md` → `p0-002`) and included in the commit message for easy tracking.
-
-**Commits are created when:**
-- An issue is completed (moved from `open/` to `review/`)
-- An issue is moved to `stuck/`
-- An issue is still in `open/` but has been modified (work in progress)
+The issue ID is extracted from the filename (e.g., `p0-002-git.md` → `p0-002-git`) and the status reflects what happened during the iteration:
+- `done` - Issue completed (moved from `open/` to `review/`)
+- `in progress` - Issue still being worked on (remains in `open/`)
+- `stuck` - Issue blocked (moved from `open/` to `stuck/`)
+- `unknown` - Issue not found in any expected location
 
 **Notes:**
 - Automatically stages all changes (`git add -A`)

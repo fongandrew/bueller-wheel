@@ -67,12 +67,11 @@ function getOpenIssues(issuesDir: string): string[] {
 }
 
 function extractIssueId(issueFile: string): string {
-	// Extract ID from filename like "p0-002-git.md" -> "p0-002"
-	const match = issueFile.match(/^(p\d+-\d+)/);
-	return match ? match[1]! : issueFile.replace('.md', '');
+	// Extract ID from filename like "p0-002-git.md" -> "p0-002-git"
+	return issueFile.replace('.md', '');
 }
 
-function gitCommit(issueFile: string): void {
+function gitCommit(issueFile: string, status: string): void {
 	const issueId = extractIssueId(issueFile);
 
 	try {
@@ -88,14 +87,14 @@ function gitCommit(issueFile: string): void {
 		// Stage all changes
 		execSync('git add -A', { stdio: 'inherit' });
 
-		// Create commit with issue ID in the message
-		const commitMessage = `[${issueId}] Auto-commit`;
+		// Create commit with issue ID and status
+		const commitMessage = `${issueId} ${status}`;
 
 		execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
 			stdio: 'inherit',
 		});
 
-		console.log(`\nGit commit created for issue ${issueId}`);
+		console.log(`\nGit commit created: ${commitMessage}`);
 	} catch (error) {
 		console.error(`Failed to create git commit: ${String(error)}`);
 	}
@@ -358,34 +357,32 @@ async function main(): Promise<void> {
 		console.log(`Next issue: ${openIssues[0]}`);
 
 		const currentIssue = openIssues[0]!;
-		const wasInOpen = fs.existsSync(path.join(config.issuesDir, ISSUE_DIR_OPEN, currentIssue));
 
 		await runAgent(promptTemplate, config.issuesDir, currentIssue);
 
-		// Check if issue was moved
-		const isNowInReview = fs.existsSync(
-			path.join(config.issuesDir, ISSUE_DIR_REVIEW, currentIssue),
-		);
-		const isNowInStuck = fs.existsSync(
-			path.join(config.issuesDir, ISSUE_DIR_STUCK, currentIssue),
-		);
-		const isStillInOpen = fs.existsSync(
-			path.join(config.issuesDir, ISSUE_DIR_OPEN, currentIssue),
-		);
+		// Auto-commit if enabled and there's a current issue
+		if (config.gitCommit && currentIssue) {
+			// Determine the status based on where the issue ended up
+			const isNowInReview = fs.existsSync(
+				path.join(config.issuesDir, ISSUE_DIR_REVIEW, currentIssue),
+			);
+			const isNowInStuck = fs.existsSync(
+				path.join(config.issuesDir, ISSUE_DIR_STUCK, currentIssue),
+			);
+			const isStillInOpen = fs.existsSync(
+				path.join(config.issuesDir, ISSUE_DIR_OPEN, currentIssue),
+			);
 
-		// Auto-commit if enabled and work was done
-		if (config.gitCommit) {
-			if (wasInOpen && !isStillInOpen && isNowInReview) {
-				console.log('\nIssue completed - creating git commit...');
-				gitCommit(currentIssue);
-			} else if (wasInOpen && !isStillInOpen && isNowInStuck) {
-				console.log('\nIssue moved to stuck - creating git commit...');
-				gitCommit(currentIssue);
+			let status = 'unknown';
+			if (isNowInReview) {
+				status = 'done';
+			} else if (isNowInStuck) {
+				status = 'stuck';
 			} else if (isStillInOpen) {
-				// Issue is still in open, but may have been modified
-				console.log('\nIssue still in progress - creating git commit...');
-				gitCommit(currentIssue);
+				status = 'in progress';
 			}
+
+			gitCommit(currentIssue, status);
 		}
 	}
 
