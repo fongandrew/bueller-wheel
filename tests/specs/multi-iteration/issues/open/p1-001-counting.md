@@ -1,1 +1,0 @@
-@user: Please create three files: count1.txt, count2.txt, and count3.txt. Each should contain its number (1, 2, and 3 respectively). Create them one at a time across multiple iterations by marking CONTINUE after each file, and only COMPLETE after all three are done.

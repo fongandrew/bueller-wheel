@@ -1,0 +1,1 @@
+@user: This is a complex task that should be decomposed into three child tasks. Please DECOMPOSE this into three child tasks: (1) create file1.txt with "Task 1", (2) modify the contents of /nonexistent/impossible/path.txt by adding "Hello" to it - this task is impossible and should be marked as STUCK when you cannot do it, and (3) create file3.txt with "Task 3".
