@@ -13,6 +13,7 @@ interface Config {
 	issuesDir: string;
 	maxIterations: number;
 	gitCommit: boolean;
+	promptFile: string;
 }
 
 function parseArgs(): Config {
@@ -20,18 +21,25 @@ function parseArgs(): Config {
 	let issuesDir = './issues';
 	let maxIterations = 100;
 	let gitCommit = false;
+	let promptFile = path.join('./issues', 'prompt.md');
 
 	for (let i = 0; i < args.length; i++) {
 		if (args[i] === '--issues-dir' && i + 1 < args.length) {
 			issuesDir = args[++i]!;
+			// Update default prompt file location if issues-dir is changed
+			if (!args.includes('--prompt')) {
+				promptFile = path.join(issuesDir, 'prompt.md');
+			}
 		} else if (args[i] === '--max-iterations' && i + 1 < args.length) {
 			maxIterations = parseInt(args[++i]!, 10);
 		} else if (args[i] === '--git-commit') {
 			gitCommit = true;
+		} else if (args[i] === '--prompt' && i + 1 < args.length) {
+			promptFile = args[++i]!;
 		}
 	}
 
-	return { issuesDir, maxIterations, gitCommit };
+	return { issuesDir, maxIterations, gitCommit, promptFile };
 }
 
 function ensureDirectories(issuesDir: string): void {
@@ -92,17 +100,15 @@ function gitCommit(issueFile: string): void {
 	}
 }
 
-function buildSystemPrompt(issuesDir: string, issueFile: string): string {
-	const issueFilePath = path.join(issuesDir, ISSUE_DIR_OPEN, issueFile);
-
+function getDefaultPromptTemplate(): string {
 	return `You are a task automation agent processing issues from a queue.
 
 ## Your Environment
 
-Issues directory: ${issuesDir}
-- ${issuesDir}/${ISSUE_DIR_OPEN}/     - Issues to be processed
-- ${issuesDir}/${ISSUE_DIR_REVIEW}/   - Completed issues
-- ${issuesDir}/${ISSUE_DIR_STUCK}/    - Issues requiring human intervention
+Issues directory: [ISSUES_DIR]
+- [ISSUES_DIR]/[ISSUE_DIR_OPEN]/     - Issues to be processed
+- [ISSUES_DIR]/[ISSUE_DIR_REVIEW]/   - Completed issues
+- [ISSUES_DIR]/[ISSUE_DIR_STUCK]/    - Issues requiring human intervention
 
 ## Issue File Format
 
@@ -142,11 +148,11 @@ Here is a summary of the work I have done:
 
 ## Your Task for This Iteration
 
-Your issue file: ${issueFilePath}
+Your issue file: [ISSUE_FILE_PATH]
 
-1. **Read the issue**: Parse the conversation history in ${issueFilePath} to understand the task
+1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
 2. **Work on the task**: Do what the issue requests
-3. **Append your response**: Add your summary to ${issueFilePath} using this format:
+3. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
    \`\`\`
    ---
 
@@ -161,23 +167,23 @@ Your issue file: ${issueFilePath}
 4. **Decide the outcome**: Choose ONE of the following actions:
 
    a. **CONTINUE** - You made progress but the task isn't complete yet
-      - Leave the issue in \`${issuesDir}/${ISSUE_DIR_OPEN}/\` for the next iteration
+      - Leave the issue in \`[ISSUES_DIR]/[ISSUE_DIR_OPEN]/\` for the next iteration
       - Use this when you need multiple iterations to complete a complex task
 
    b. **COMPLETE** - The task is fully finished
-      - Move the issue to \`${issuesDir}/${ISSUE_DIR_REVIEW}/\` using: \`mv "${issueFilePath}" "${issuesDir}/${ISSUE_DIR_REVIEW}/${issueFile}"\`
+      - Move the issue to \`[ISSUES_DIR]/[ISSUE_DIR_REVIEW]/\` using: \`mv "[ISSUE_FILE_PATH]" "[ISSUES_DIR]/[ISSUE_DIR_REVIEW]/[ISSUE_FILE]"\`
 
    c. **DECOMPOSE** - The task is too large and should be broken into smaller sub-tasks
-      - Create child issues in \`${issuesDir}/${ISSUE_DIR_OPEN}/\` with \`-001.md\`, \`-002.md\` suffixes
+      - Create child issues in \`[ISSUES_DIR]/[ISSUE_DIR_OPEN]/\` with \`-001.md\`, \`-002.md\` suffixes
       - Each child issue should start with: \`@user: [clear, actionable task description]\`
       - Example: If parent is \`p1-050-add-auth.md\`, create:
         - \`p1-050-add-auth-001.md\` for subtask 1
         - \`p1-050-add-auth-002.md\` for subtask 2
-      - Move the parent issue to \`${issuesDir}/${ISSUE_DIR_REVIEW}/\`
+      - Move the parent issue to \`[ISSUES_DIR]/[ISSUE_DIR_REVIEW]/\`
 
    d. **STUCK** - You cannot proceed without human intervention
       - Explain clearly why you're stuck in your summary
-      - Move the issue to \`${issuesDir}/${ISSUE_DIR_STUCK}/\` using: \`mv "${issueFilePath}" "${issuesDir}/${ISSUE_DIR_STUCK}/${issueFile}"\`
+      - Move the issue to \`[ISSUES_DIR]/[ISSUE_DIR_STUCK]/\` using: \`mv "[ISSUE_FILE_PATH]" "[ISSUES_DIR]/[ISSUE_DIR_STUCK]/[ISSUE_FILE]"\`
 
 ## Important Notes
 
@@ -187,7 +193,47 @@ Your issue file: ${issueFilePath}
 - When creating child issues, make each one focused and actionable
 - Use bash commands (mv, cat, echo) to manage files - you have full filesystem access
 
-Now, please process the issue at ${issueFilePath}.`;
+Now, please process the issue at [ISSUE_FILE_PATH].`;
+}
+
+function loadOrCreatePromptTemplate(promptFile: string): string {
+	// If prompt file exists, load it
+	if (fs.existsSync(promptFile)) {
+		console.log(`Loading prompt template from: ${promptFile}`);
+		return fs.readFileSync(promptFile, 'utf-8');
+	}
+
+	// Otherwise, create the default prompt template
+	console.log(`Prompt file not found. Creating default template at: ${promptFile}`);
+	const defaultTemplate = getDefaultPromptTemplate();
+
+	// Ensure the directory exists
+	const promptDir = path.dirname(promptFile);
+	if (!fs.existsSync(promptDir)) {
+		fs.mkdirSync(promptDir, { recursive: true });
+	}
+
+	// Write the default template
+	fs.writeFileSync(promptFile, defaultTemplate, 'utf-8');
+
+	return defaultTemplate;
+}
+
+function buildSystemPrompt(
+	template: string,
+	issuesDir: string,
+	issueFile: string,
+): string {
+	const issueFilePath = path.join(issuesDir, ISSUE_DIR_OPEN, issueFile);
+
+	// Replace template variables with actual values
+	return template
+		.replace(/\[ISSUES_DIR\]/g, issuesDir)
+		.replace(/\[ISSUE_DIR_OPEN\]/g, ISSUE_DIR_OPEN)
+		.replace(/\[ISSUE_DIR_REVIEW\]/g, ISSUE_DIR_REVIEW)
+		.replace(/\[ISSUE_DIR_STUCK\]/g, ISSUE_DIR_STUCK)
+		.replace(/\[ISSUE_FILE_PATH\]/g, issueFilePath)
+		.replace(/\[ISSUE_FILE\]/g, issueFile);
 }
 
 function logToolUse(block: BetaToolUseBlock | ToolUseBlockParam): void {
@@ -265,8 +311,12 @@ function logSDKMessage(item: SDKMessage): void {
 	}
 }
 
-async function runAgent(issuesDir: string, issueFile: string): Promise<void> {
-	const systemPrompt = buildSystemPrompt(issuesDir, issueFile);
+async function runAgent(
+	template: string,
+	issuesDir: string,
+	issueFile: string,
+): Promise<void> {
+	const systemPrompt = buildSystemPrompt(template, issuesDir, issueFile);
 
 	console.log('\n--- Starting agent ---');
 
@@ -293,8 +343,12 @@ async function main(): Promise<void> {
 	console.log(`Issues directory: ${config.issuesDir}`);
 	console.log(`Max iterations: ${config.maxIterations}`);
 	console.log(`Git auto-commit: ${config.gitCommit ? 'enabled' : 'disabled'}`);
+	console.log(`Prompt file: ${config.promptFile}`);
 
 	ensureDirectories(config.issuesDir);
+
+	// Load or create the prompt template
+	const promptTemplate = loadOrCreatePromptTemplate(config.promptFile);
 
 	let iteration = 0;
 
@@ -315,7 +369,7 @@ async function main(): Promise<void> {
 		const currentIssue = openIssues[0]!;
 		const wasInOpen = fs.existsSync(path.join(config.issuesDir, ISSUE_DIR_OPEN, currentIssue));
 
-		await runAgent(config.issuesDir, currentIssue);
+		await runAgent(promptTemplate, config.issuesDir, currentIssue);
 
 		// Check if issue was moved to review (completed)
 		const isNowInReview = fs.existsSync(
