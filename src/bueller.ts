@@ -1,9 +1,10 @@
+import { execSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { type ToolUseBlockParam } from '@anthropic-ai/sdk/resources';
 import { type BetaToolUseBlock } from '@anthropic-ai/sdk/resources/beta.mjs';
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
 
 const ISSUE_DIR_OPEN = 'open';
 const ISSUE_DIR_REVIEW = 'review';
@@ -105,7 +106,7 @@ function getDefaultPromptTemplate(): string {
 
 ## Your Environment
 
-Issues directory: [ISSUES_DIR]
+Issues directory:
 - [ISSUES_DIR]/[ISSUE_DIR_OPEN]/     - Issues to be processed
 - [ISSUES_DIR]/[ISSUE_DIR_REVIEW]/   - Completed issues
 - [ISSUES_DIR]/[ISSUE_DIR_STUCK]/    - Issues requiring human intervention
@@ -238,8 +239,6 @@ function logToolUse(block: BetaToolUseBlock | ToolUseBlockParam): void {
 	switch (block.name.toLowerCase()) {
 		case 'read':
 		case 'write':
-			process.stdout.write(`${(block.input as any)?.file_path}`);
-			break;
 		case 'edit':
 			process.stdout.write(`${(block.input as any)?.file_path}`);
 			break;
