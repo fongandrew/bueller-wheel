@@ -1,3 +1,4 @@
+import { spawn } from 'node:child_process';
 import * as fs from 'node:fs';
 
 /**
@@ -9,6 +10,80 @@ export class VerificationError extends Error {
 		super(message);
 		this.name = 'VerificationError';
 	}
+}
+
+/**
+ * Options for running Bueller
+ */
+export interface RunBuellerOptions {
+	issuesDir?: string;
+	maxIterations?: number;
+	timeoutMs?: number;
+	additionalArgs?: string[];
+}
+
+/**
+ * Run Bueller with the given options
+ */
+export async function runBueller(options: RunBuellerOptions = {}): Promise<{
+	exitCode: number;
+	output: string;
+	timedOut: boolean;
+}> {
+	const {
+		issuesDir = './issues',
+		maxIterations = 10,
+		timeoutMs = 60000,
+		additionalArgs = [],
+	} = options;
+
+	const args = ['../bueller.js', '--issues-dir', issuesDir, '--max-iterations', String(maxIterations), ...additionalArgs];
+
+	return new Promise((resolve) => {
+		const output: string[] = [];
+
+		const child = spawn('node', args, {
+			cwd: process.cwd(),
+			stdio: 'pipe',
+		});
+
+		let timedOut = false;
+		const timeout = setTimeout(() => {
+			timedOut = true;
+			child.kill('SIGTERM');
+		}, timeoutMs);
+
+		child.stdout?.on('data', (data) => {
+			output.push(data.toString());
+		});
+
+		child.stderr?.on('data', (data) => {
+			output.push(data.toString());
+		});
+
+		child.on('close', (code) => {
+			clearTimeout(timeout);
+			const fullOutput = output.join('');
+			// Save output for debugging
+			fs.writeFileSync('bueller.output.txt', fullOutput);
+			resolve({
+				exitCode: code ?? 1,
+				output: fullOutput,
+				timedOut,
+			});
+		});
+
+		child.on('error', (error) => {
+			clearTimeout(timeout);
+			const errorOutput = `Error: ${error.message}`;
+			fs.writeFileSync('bueller.output.txt', errorOutput);
+			resolve({
+				exitCode: 1,
+				output: errorOutput,
+				timedOut: false,
+			});
+		});
+	});
 }
 
 /**

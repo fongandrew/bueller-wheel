@@ -8,7 +8,7 @@
 		"build": "tsc",
 		"dev": "tsx src/bueller.ts",
 		"start": "node dist/bueller.js",
-		"test": "tsx src/test-runner.ts",
+		"test": "tsx tests/test-runner.ts",
 		"typecheck": "tsc --noEmit",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",

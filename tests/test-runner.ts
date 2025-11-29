@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 
-import { execSync, spawn } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,12 +20,11 @@ interface TestResult {
 	name: string;
 	passed: boolean;
 	error?: string;
-	timeout?: boolean;
 }
 
 const SCRIPT_DIR = __dirname;
 const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
-const FIXTURES_DIR = path.join(PROJECT_ROOT, 'tests', 'fixtures');
+const SPECS_DIR = path.join(SCRIPT_DIR, 'specs');
 const TEMP_BASE = path.join(PROJECT_ROOT, '.test-tmp');
 
 async function buildProject(): Promise<void> {
@@ -69,63 +68,8 @@ function copyDirectory(src: string, dest: string): void {
 	}
 }
 
-async function runBuellerWithTimeout(
-	testTemp: string,
-	timeoutMs: number,
-): Promise<{ exitCode: number; output: string; timedOut: boolean }> {
-	return new Promise((resolve) => {
-		const outputFile = path.join(testTemp, 'bueller.output.txt');
-		const output: string[] = [];
-
-		const child = spawn(
-			'node',
-			['bueller.js', '--issues-dir', './issues', '--max-iterations', '10'],
-			{
-				cwd: testTemp,
-				stdio: 'pipe',
-			},
-		);
-
-		let timedOut = false;
-		const timeout = setTimeout(() => {
-			timedOut = true;
-			child.kill('SIGTERM');
-		}, timeoutMs);
-
-		child.stdout?.on('data', (data) => {
-			output.push(data.toString());
-		});
-
-		child.stderr?.on('data', (data) => {
-			output.push(data.toString());
-		});
-
-		child.on('close', (code) => {
-			clearTimeout(timeout);
-			const fullOutput = output.join('');
-			fs.writeFileSync(outputFile, fullOutput);
-			resolve({
-				exitCode: code ?? 1,
-				output: fullOutput,
-				timedOut,
-			});
-		});
-
-		child.on('error', (error) => {
-			clearTimeout(timeout);
-			const errorOutput = `Error: ${error.message}`;
-			fs.writeFileSync(outputFile, errorOutput);
-			resolve({
-				exitCode: 1,
-				output: errorOutput,
-				timedOut: false,
-			});
-		});
-	});
-}
-
 async function runTest(testName: string): Promise<TestResult> {
-	const testDir = path.join(FIXTURES_DIR, testName);
+	const testDir = path.join(SPECS_DIR, testName);
 
 	if (!fs.existsSync(testDir)) {
 		return {
@@ -135,12 +79,12 @@ async function runTest(testName: string): Promise<TestResult> {
 		};
 	}
 
-	const verifyScript = path.join(testDir, 'verify.ts');
-	if (!fs.existsSync(verifyScript)) {
+	const runScript = path.join(testDir, 'run.ts');
+	if (!fs.existsSync(runScript)) {
 		return {
 			name: testName,
 			passed: false,
-			error: `verify.ts not found in ${testDir}`,
+			error: `run.ts not found in ${testDir}`,
 		};
 	}
 
@@ -159,10 +103,7 @@ async function runTest(testName: string): Promise<TestResult> {
 		path.join(testTemp, 'bueller.js'),
 	);
 
-	// Copy node_modules
-	copyDirectory(path.join(PROJECT_ROOT, 'node_modules'), path.join(testTemp, 'node_modules'));
-
-	// Copy the test fixture
+	// Copy the test setup (issues directory)
 	const setupDir = path.join(testDir, 'setup');
 	if (!fs.existsSync(setupDir)) {
 		return {
@@ -174,21 +115,9 @@ async function runTest(testName: string): Promise<TestResult> {
 
 	copyDirectory(setupDir, path.join(testTemp, 'issues'));
 
-	// Run bueller with timeout
-	const { timedOut } = await runBuellerWithTimeout(testTemp, 60000);
-
-	if (timedOut) {
-		console.log(`${colors.red}TIMEOUT: Test took longer than 60 seconds${colors.reset}\n`);
-		return {
-			name: testName,
-			passed: false,
-			timeout: true,
-		};
-	}
-
-	// Run verification script
+	// Run the test script (which will run Bueller and verify results)
 	try {
-		execSync(`tsx "${verifyScript}"`, {
+		execSync(`tsx "${runScript}"`, {
 			cwd: testTemp,
 			stdio: 'pipe',
 			encoding: 'utf-8',
@@ -202,13 +131,15 @@ async function runTest(testName: string): Promise<TestResult> {
 	} catch (error) {
 		const outputFile = path.join(testTemp, 'bueller.output.txt');
 		console.log(`${colors.red}FAIL: ${testName}${colors.reset}`);
-		console.log(`Output saved to: ${outputFile}`);
+		if (fs.existsSync(outputFile)) {
+			console.log(`Output saved to: ${outputFile}`);
+		}
 		console.log('');
 
 		return {
 			name: testName,
 			passed: false,
-			error: error instanceof Error ? error.message : 'Verification failed',
+			error: error instanceof Error ? error.message : 'Test failed',
 		};
 	}
 }
@@ -235,25 +166,25 @@ async function main(): Promise<void> {
 		results.push(result);
 	} else {
 		// Run all tests
-		console.log(`Discovering tests in ${FIXTURES_DIR}...`);
+		console.log(`Discovering tests in ${SPECS_DIR}...`);
 
-		if (!fs.existsSync(FIXTURES_DIR)) {
+		if (!fs.existsSync(SPECS_DIR)) {
 			console.error(
-				`${colors.red}ERROR: Fixtures directory not found: ${FIXTURES_DIR}${colors.reset}`,
+				`${colors.red}ERROR: Specs directory not found: ${SPECS_DIR}${colors.reset}`,
 			);
 			process.exit(1);
 		}
 
 		const testDirs = fs
-			.readdirSync(FIXTURES_DIR, { withFileTypes: true })
+			.readdirSync(SPECS_DIR, { withFileTypes: true })
 			.filter((entry) => entry.isDirectory())
 			.map((entry) => entry.name);
 
 		if (testDirs.length === 0) {
 			console.log(
-				`${colors.yellow}WARNING: No test fixtures found in ${FIXTURES_DIR}${colors.reset}`,
+				`${colors.yellow}WARNING: No test specs found in ${SPECS_DIR}${colors.reset}`,
 			);
-			console.log('Create test fixtures to get started. See tests/README.md for details.');
+			console.log('Create test specs to get started. See tests/README.md for details.');
 			process.exit(0);
 		}
 
@@ -280,8 +211,7 @@ async function main(): Promise<void> {
 		console.log('');
 		console.log('Failed tests:');
 		for (const test of failedTests) {
-			const suffix = test.timeout ? ' (timeout)' : '';
-			console.log(`  - ${test.name}${suffix}`);
+			console.log(`  - ${test.name}`);
 		}
 		console.log('');
 		console.log(`Test artifacts preserved in: ${TEMP_BASE}`);

@@ -6,35 +6,34 @@ This directory contains end-to-end tests for the Bueller issue processor.
 
 ```
 tests/
-├── fixtures/          # Test case definitions
+├── specs/             # Test case definitions
 │   ├── simple-task/
 │   │   ├── setup/     # Initial issues directory structure
-│   │   └── verify.ts  # Verification script (TypeScript)
+│   │   └── run.ts     # Test script (runs Bueller + verification)
 │   └── ...
-├── verify-utils.ts    # Shared utilities for verification scripts
+├── test-runner.ts     # Test runner that executes all specs
+├── verify-utils.ts    # Shared utilities for test scripts
 └── README.md          # This file
 ```
 
-Test runner is located at: `src/test-runner.ts`
-
 ## How Tests Work
 
-1. Each test case is a directory under `fixtures/` containing:
+1. Each test case is a directory under `specs/` containing:
    - `setup/` - A complete issues directory with pre-made markdown files
-   - `verify.ts` - A TypeScript script that verifies the test outcome
+   - `run.ts` - A TypeScript script that runs Bueller and verifies the outcome
 
-2. The test runner (`src/test-runner.ts`):
+2. The test runner (`tests/test-runner.ts`):
    - Builds the bueller script (`npm run build`)
    - For each test case:
-     - Creates a temporary directory in `.test-tmp/` (git-ignored)
-     - Copies the built script and node_modules into it
-     - Copies the test fixture
-     - Runs bueller with a 60-second timeout and max 10 iterations
-     - Executes the verification script using `tsx`
+     - Creates a temporary directory in `.test-tmp/` (git-ignored, inside the repo for node_modules access)
+     - Copies the built script into it
+     - Copies the test fixture (setup directory)
+     - Executes the `run.ts` script using `tsx`
      - Reports success/failure
 
-3. Verification scripts should:
+3. Test scripts (`run.ts`) should:
    - Import utilities from `../../verify-utils.js`
+   - Call `runBueller()` to execute Bueller with specific CLI args
    - Check that issues moved to expected directories
    - Verify file contents if needed
    - Throw `VerificationError` for failures
@@ -52,26 +51,38 @@ npm test simple-task
 
 ## Creating a New Test Case
 
-1. Create a new directory under `fixtures/`:
+1. Create a new directory under `specs/`:
    ```bash
-   mkdir -p tests/fixtures/my-test/setup/open
-   mkdir -p tests/fixtures/my-test/setup/review
-   mkdir -p tests/fixtures/my-test/setup/stuck
+   mkdir -p tests/specs/my-test/setup/open
+   mkdir -p tests/specs/my-test/setup/review
+   mkdir -p tests/specs/my-test/setup/stuck
    ```
 
 2. Add issue files to `setup/open/`:
    ```bash
-   echo "@user: Do something" > tests/fixtures/my-test/setup/open/p1-001-test.md
+   echo "@user: Do something" > tests/specs/my-test/setup/open/p1-001-test.md
    ```
 
-3. Create a verification script `verify.ts`:
+3. Create a test script `run.ts`:
    ```typescript
    import {
      assertFileExists,
      assertFileNotExists,
      assertFileContains,
      pass,
+     runBueller,
    } from '../../verify-utils.js';
+
+   // Run Bueller with custom options
+   const result = await runBueller({
+     issuesDir: './issues',
+     maxIterations: 10,
+     timeoutMs: 60000,
+   });
+
+   if (result.timedOut) {
+     throw new Error('FAIL: Test timed out');
+   }
 
    // Check that the issue was moved to review
    assertFileExists(
@@ -92,6 +103,15 @@ npm test simple-task
 
 The `verify-utils.ts` module provides:
 
+### Running Bueller
+- `runBueller(options?)` - Runs Bueller with specified options
+  - `options.issuesDir` - Issues directory (default: `./issues`)
+  - `options.maxIterations` - Max iterations (default: 10)
+  - `options.timeoutMs` - Timeout in ms (default: 60000)
+  - `options.additionalArgs` - Additional CLI args (default: [])
+  - Returns: `{ exitCode, output, timedOut }`
+
+### Assertions
 - `assertFileExists(path, message?)` - Assert a file exists
 - `assertFileNotExists(path, message?)` - Assert a file does not exist
 - `assertFileContains(path, search, message?)` - Assert a file contains a string

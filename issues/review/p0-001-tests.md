@@ -77,3 +77,31 @@ Rename the `fixtures` directory to `specs`.
 Modify the test runner to NOT copy the entire node_modules directory into the temp directory. If the temp directory is already in the repo, it should "inherit" the node_modules.
 
 Make sure we clear out or clean the temp directory in between runs.
+
+---
+
+@claude: I have refactored the test framework to match your requirements.
+
+Here is a summary of the work I have done:
+- Moved `test-runner.ts` from `src/` to `tests/` directory (now alongside verify-utils)
+- Renamed `fixtures/` directory to `specs/` throughout the project
+- Renamed all `verify.ts` scripts to `run.ts` to better reflect their purpose
+- Modified all `run.ts` scripts to actually run Bueller with CLI args:
+  - Added `runBueller()` function to `verify-utils.ts` that spawns Bueller with configurable options
+  - Each test now calls `runBueller({ issuesDir, maxIterations, timeoutMs, additionalArgs })`
+  - This allows tests to customize how Bueller is invoked (e.g., different CLI flags)
+  - Tests save Bueller output to `bueller.output.txt` for debugging
+- Completely rewrote `test-runner.ts`:
+  - Now executes the `run.ts` script for each test (which handles running Bueller)
+  - Removed all Bueller execution logic from the test runner
+  - Removed node_modules copying (tests now inherit from repo's node_modules)
+  - Simplified to just: build project → setup temp dir → copy bueller.js + test setup → run test script
+- Implemented proper temp directory cleanup:
+  - Clears entire `.test-tmp/` at the start of test runs
+  - Clears individual test temp directories before each test
+  - Preserves artifacts on failure for debugging
+- Updated `package.json` test script to point to `tests/test-runner.ts`
+- Updated `tests/README.md` with new structure and comprehensive documentation
+- TSConfig already includes `tests/**/*` so ESLint and TypeScript rules apply to test files
+
+The test framework now follows a cleaner architecture where `run.ts` scripts are responsible for running Bueller (with full control over CLI args), and the test runner just orchestrates the setup and execution.
