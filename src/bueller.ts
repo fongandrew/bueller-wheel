@@ -362,17 +362,30 @@ async function main(): Promise<void> {
 
 		await runAgent(promptTemplate, config.issuesDir, currentIssue);
 
-		// Check if issue was moved to review (completed)
+		// Check if issue was moved
 		const isNowInReview = fs.existsSync(
 			path.join(config.issuesDir, ISSUE_DIR_REVIEW, currentIssue),
 		);
-		const isNoLongerInOpen = !fs.existsSync(
+		const isNowInStuck = fs.existsSync(
+			path.join(config.issuesDir, ISSUE_DIR_STUCK, currentIssue),
+		);
+		const isStillInOpen = fs.existsSync(
 			path.join(config.issuesDir, ISSUE_DIR_OPEN, currentIssue),
 		);
 
-		if (config.gitCommit && wasInOpen && isNoLongerInOpen && isNowInReview) {
-			console.log('\nIssue completed - creating git commit...');
-			gitCommit(currentIssue);
+		// Auto-commit if enabled and work was done
+		if (config.gitCommit) {
+			if (wasInOpen && !isStillInOpen && isNowInReview) {
+				console.log('\nIssue completed - creating git commit...');
+				gitCommit(currentIssue);
+			} else if (wasInOpen && !isStillInOpen && isNowInStuck) {
+				console.log('\nIssue moved to stuck - creating git commit...');
+				gitCommit(currentIssue);
+			} else if (isStillInOpen) {
+				// Issue is still in open, but may have been modified
+				console.log('\nIssue still in progress - creating git commit...');
+				gitCommit(currentIssue);
+			}
 		}
 	}
 

@@ -137,22 +137,26 @@ When complete, move it to: ./issues/review/p0-100-task.md
 
 ### Git Auto-Commit
 
-When `--git-commit` is enabled, Bueller will automatically create a git commit whenever an issue is successfully completed (moved from `open/` to `review/`).
+When `--git-commit` is enabled, Bueller will automatically create a git commit after each iteration where work was done on an issue.
 
 The commit message format is:
 ```
-[p0-002] Auto-commit after completing issue
+[p0-002] Auto-commit
 
 🤖 Generated with Bueller
 ```
 
 The issue ID is extracted from the filename (e.g., `p0-002-git.md` → `p0-002`) and included in the commit message for easy tracking.
 
+**Commits are created when:**
+- An issue is completed (moved from `open/` to `review/`)
+- An issue is moved to `stuck/`
+- An issue is still in `open/` but has been modified (work in progress)
+
 **Notes:**
-- Only triggers when an issue is moved to `review/` (completed)
 - Automatically stages all changes (`git add -A`)
 - Skips commit if there are no changes to commit
-- Does not commit when issues are moved to `stuck/` or when decomposed
+- Each iteration gets its own commit for easy tracking of progress
 
 ## Testing
 
