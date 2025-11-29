@@ -3,11 +3,11 @@
 	"version": "0.1.0",
 	"description": "Node.js TypeScript script",
 	"type": "module",
-	"main": "dist/index.js",
+	"main": "dist/bueller.js",
 	"scripts": {
 		"build": "tsc",
-		"dev": "tsx src/index.ts",
-		"start": "node dist/index.js",
+		"dev": "tsx src/bueller.ts",
+		"start": "node dist/bueller.js",
 		"typecheck": "tsc --noEmit",
 		"lint": "eslint .",
 		"lint:fix": "eslint . --fix",
@@ -17,6 +17,7 @@
 	"author": "Andrew Fong <id@andrewfong.com>",
 	"license": "UNLICENSED",
 	"devDependencies": {
+		"@anthropic-ai/sdk": "^0.71.0",
 		"@eslint/js": "^9.30.1",
 		"@types/node": "^24.0.10",
 		"@typescript-eslint/parser": "^8.47.0",
@@ -27,9 +28,14 @@
 		"eslint-plugin-simple-import-sort": "^12.1.1",
 		"eslint-plugin-unused-imports": "^4.1.4",
 		"globals": "^16.3.0",
+		"install": "^0.13.0",
+		"npm": "^11.6.4",
 		"prettier": "^3.6.2",
 		"tsx": "^4.19.2",
 		"typescript": "^5.8.3",
 		"typescript-eslint": "^8.47.0"
+	},
+	"dependencies": {
+		"@anthropic-ai/claude-agent-sdk": "^0.1.55"
 	}
 }

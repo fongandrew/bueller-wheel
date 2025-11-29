@@ -1,0 +1,1 @@
+@user: Set up a way to implement end-to-end tests. We want a scenario of fixtures / test cases that are basically just different issue directory setups with pre-made markdown files. And in each of these directories, we have a verification script of some kind. To test, we build our bueller script, copy it + test case into some other location (not git-tracked), and then run it.
