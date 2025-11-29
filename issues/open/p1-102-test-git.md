@@ -1,1 +1,0 @@
-@user: Create a test spec to test git commits. We don't actually want to commit to the same git repo as this one though, so as part of test setup, we should `git init` a new repository inside `.test-tmp` so git commands don't "contaminate" the parent repo.
