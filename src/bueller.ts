@@ -18,8 +18,57 @@ interface Config {
 	promptFile: string;
 }
 
+function showHelp(): void {
+	console.log(`
+Bueller - Headless Claude Code Issue Processor
+
+USAGE:
+  bueller [OPTIONS]
+
+OPTIONS:
+  --help              Show this help message and exit
+  --issues-dir DIR    Directory containing issue queue (default: ./issues)
+  --faq-dir DIR       Directory containing FAQ/troubleshooting guides (default: ./faq)
+  --max-iterations N  Maximum number of iterations to run (default: 100)
+  --git, --git-commit Enable automatic git commits after each iteration
+  --prompt FILE       Custom prompt template file (default: ./issues/prompt.md)
+
+DIRECTORY STRUCTURE:
+  issues/
+    open/       Issues to be processed
+    review/     Completed issues
+    stuck/      Issues requiring human intervention
+    prompt.md   Custom prompt template (optional)
+  faq/          FAQ and troubleshooting guides
+
+ISSUE FILE FORMAT:
+  Issues are markdown files named: p{priority}-{order}-{description}.md
+
+  Priority levels:
+    p0: Urgent/unexpected work
+    p1: Normal feature work
+    p2: Non-blocking follow-up
+    p3: "Do next" - promote to p1 when ready
+
+EXAMPLES:
+  bueller
+  bueller --issues-dir ./my-issues --faq-dir ./my-faq
+  bueller --max-iterations 50 --git-commit
+  bueller --prompt ./custom-prompt.md
+
+For more information, visit: https://github.com/anthropics/bueller
+`);
+}
+
 function parseArgs(): Config {
 	const args = process.argv.slice(2);
+
+	// Check for help flag first
+	if (args.includes('--help') || args.includes('-h')) {
+		showHelp();
+		process.exit(0);
+	}
+
 	let issuesDir = './issues';
 	let faqDir = './faq';
 	let maxIterations = 100;
