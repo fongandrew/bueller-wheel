@@ -23,7 +23,7 @@ tests/
    - `run.ts` - A TypeScript script that runs Bueller and verifies the outcome
 
 2. The test runner (`tests/test-runner.ts`):
-   - Builds the bueller script (`npm run build`)
+   - Builds the bueller script (`pnpm run build`)
    - For each test case:
      - Creates a temporary directory in `.test-tmp/` (git-ignored, inside the repo for node_modules access)
      - Copies the built script into it
@@ -43,10 +43,10 @@ tests/
 
 ```bash
 # Run all tests
-npm test
+pnpm test
 
 # Run a specific test
-npm test simple-task
+pnpm test simple-task
 ```
 
 ## Creating a New Test Case
