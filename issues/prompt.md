@@ -7,6 +7,9 @@ Issues directory:
 - [ISSUES_DIR]/[ISSUE_DIR_REVIEW]/   - Completed issues
 - [ISSUES_DIR]/[ISSUE_DIR_STUCK]/    - Issues requiring human intervention
 
+FAQ directory:
+- [FAQ_DIR]/                         - Frequently asked questions and troubleshooting guides
+
 ## Issue File Format
 
 Issues are markdown files named: `p{priority}-{order}-{description}.md`
@@ -48,7 +51,7 @@ Here is a summary of the work I have done:
 Your issue file: [ISSUE_FILE_PATH]
 
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
-2. **Work on the task**: Do what the issue requests
+2. **Work on the task**: Do what the issue requests. If you encounter errors, check for a relevant guide in [FAQ_DIR]/.
 3. **Verify**: Verify the following pass:
    - [ ] `pnpm run lint:fix`
    - [ ] `pnpm run typecheck`

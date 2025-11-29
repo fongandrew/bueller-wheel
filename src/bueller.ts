@@ -12,6 +12,7 @@ const ISSUE_DIR_STUCK = 'stuck';
 
 interface Config {
 	issuesDir: string;
+	faqDir: string;
 	maxIterations: number;
 	gitCommit: boolean;
 	promptFile: string;
@@ -20,6 +21,7 @@ interface Config {
 function parseArgs(): Config {
 	const args = process.argv.slice(2);
 	let issuesDir = './issues';
+	let faqDir = './faq';
 	let maxIterations = 100;
 	let gitCommit = false;
 	let promptFile = path.join('./issues', 'prompt.md');
@@ -31,6 +33,8 @@ function parseArgs(): Config {
 			if (!args.includes('--prompt')) {
 				promptFile = path.join(issuesDir, 'prompt.md');
 			}
+		} else if (args[i] === '--faq-dir' && i + 1 < args.length) {
+			faqDir = args[++i]!;
 		} else if (args[i] === '--max-iterations' && i + 1 < args.length) {
 			maxIterations = parseInt(args[++i]!, 10);
 		} else if (args[i] === '--git-commit') {
@@ -40,15 +44,16 @@ function parseArgs(): Config {
 		}
 	}
 
-	return { issuesDir, maxIterations, gitCommit, promptFile };
+	return { issuesDir, faqDir, maxIterations, gitCommit, promptFile };
 }
 
-async function ensureDirectories(issuesDir: string): Promise<void> {
+async function ensureDirectories(issuesDir: string, faqDir: string): Promise<void> {
 	const dirs = [
 		issuesDir,
 		path.join(issuesDir, ISSUE_DIR_OPEN),
 		path.join(issuesDir, ISSUE_DIR_REVIEW),
 		path.join(issuesDir, ISSUE_DIR_STUCK),
+		faqDir,
 	];
 
 	for (const dir of dirs) {
@@ -110,6 +115,9 @@ Issues directory:
 - [ISSUES_DIR]/[ISSUE_DIR_REVIEW]/   - Completed issues
 - [ISSUES_DIR]/[ISSUE_DIR_STUCK]/    - Issues requiring human intervention
 
+FAQ directory:
+- [FAQ_DIR]/                         - Frequently asked questions and troubleshooting guides
+
 ## Issue File Format
 
 Issues are markdown files named: \`p{priority}-{order}-{description}.md\`
@@ -151,7 +159,7 @@ Here is a summary of the work I have done:
 Your issue file: [ISSUE_FILE_PATH]
 
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
-2. **Work on the task**: Do what the issue requests
+2. **Work on the task**: Do what the issue requests. If you encounter errors, check for a relevant guide in [FAQ_DIR]/.
 3. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
    \`\`\`
    ---
@@ -218,16 +226,27 @@ async function loadOrCreatePromptTemplate(promptFile: string): Promise<string> {
 	}
 }
 
-function buildSystemPrompt(template: string, issuesDir: string, issueFile: string): string {
+function buildSystemPrompt(
+	template: string,
+	issuesDir: string,
+	faqDir: string,
+	issueFile: string,
+): string {
 	const issueFilePath = path.join(issuesDir, ISSUE_DIR_OPEN, issueFile);
+
+	// Convert all paths to absolute paths for clarity in the prompt
+	const absoluteIssuesDir = path.resolve(issuesDir);
+	const absoluteFaqDir = path.resolve(faqDir);
+	const absoluteIssueFilePath = path.resolve(issueFilePath);
 
 	// Replace template variables with actual values
 	return template
-		.replace(/\[ISSUES_DIR\]/g, issuesDir)
+		.replace(/\[ISSUES_DIR\]/g, absoluteIssuesDir)
+		.replace(/\[FAQ_DIR\]/g, absoluteFaqDir)
 		.replace(/\[ISSUE_DIR_OPEN\]/g, ISSUE_DIR_OPEN)
 		.replace(/\[ISSUE_DIR_REVIEW\]/g, ISSUE_DIR_REVIEW)
 		.replace(/\[ISSUE_DIR_STUCK\]/g, ISSUE_DIR_STUCK)
-		.replace(/\[ISSUE_FILE_PATH\]/g, issueFilePath)
+		.replace(/\[ISSUE_FILE_PATH\]/g, absoluteIssueFilePath)
 		.replace(/\[ISSUE_FILE\]/g, issueFile);
 }
 
@@ -304,8 +323,13 @@ function logSDKMessage(item: SDKMessage): void {
 	}
 }
 
-async function runAgent(template: string, issuesDir: string, issueFile: string): Promise<void> {
-	const systemPrompt = buildSystemPrompt(template, issuesDir, issueFile);
+async function runAgent(
+	template: string,
+	issuesDir: string,
+	faqDir: string,
+	issueFile: string,
+): Promise<void> {
+	const systemPrompt = buildSystemPrompt(template, issuesDir, faqDir, issueFile);
 
 	console.log('\n--- Starting agent ---');
 
@@ -330,11 +354,12 @@ async function main(): Promise<void> {
 	console.log('Bueller? Bueller?');
 	console.log('-----------------');
 	console.log(`Issues directory: ${config.issuesDir}`);
+	console.log(`FAQ directory: ${config.faqDir}`);
 	console.log(`Max iterations: ${config.maxIterations}`);
 	console.log(`Git auto-commit: ${config.gitCommit ? 'enabled' : 'disabled'}`);
 	console.log(`Prompt file: ${config.promptFile}`);
 
-	await ensureDirectories(config.issuesDir);
+	await ensureDirectories(config.issuesDir, config.faqDir);
 
 	// Load or create the prompt template
 	const promptTemplate = await loadOrCreatePromptTemplate(config.promptFile);
@@ -357,7 +382,7 @@ async function main(): Promise<void> {
 
 		const currentIssue = openIssues[0]!;
 
-		await runAgent(promptTemplate, config.issuesDir, currentIssue);
+		await runAgent(promptTemplate, config.issuesDir, config.faqDir, currentIssue);
 
 		// Auto-commit if enabled and there's a current issue
 		if (config.gitCommit && currentIssue) {

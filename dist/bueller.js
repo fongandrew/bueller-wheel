@@ -197,13 +197,16 @@ async function loadOrCreatePromptTemplate(promptFile) {
 }
 function buildSystemPrompt(template, issuesDir, issueFile) {
     const issueFilePath = path.join(issuesDir, ISSUE_DIR_OPEN, issueFile);
+    // Convert all paths to absolute paths for clarity in the prompt
+    const absoluteIssuesDir = path.resolve(issuesDir);
+    const absoluteIssueFilePath = path.resolve(issueFilePath);
     // Replace template variables with actual values
     return template
-        .replace(/\[ISSUES_DIR\]/g, issuesDir)
+        .replace(/\[ISSUES_DIR\]/g, absoluteIssuesDir)
         .replace(/\[ISSUE_DIR_OPEN\]/g, ISSUE_DIR_OPEN)
         .replace(/\[ISSUE_DIR_REVIEW\]/g, ISSUE_DIR_REVIEW)
         .replace(/\[ISSUE_DIR_STUCK\]/g, ISSUE_DIR_STUCK)
-        .replace(/\[ISSUE_FILE_PATH\]/g, issueFilePath)
+        .replace(/\[ISSUE_FILE_PATH\]/g, absoluteIssueFilePath)
         .replace(/\[ISSUE_FILE\]/g, issueFile);
 }
 function logToolUse(block) {
