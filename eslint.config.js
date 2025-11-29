@@ -23,6 +23,7 @@ export default tseslint.config(
 	// TypeScript configuration
 	{
 		files: ['**/*.{js,ts}'],
+		ignores: ['eslint.config.js'],
 		languageOptions: {
 			parser: tsParser,
 			parserOptions: {
