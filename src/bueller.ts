@@ -214,7 +214,7 @@ function logToolUse(block: BetaToolUseBlock | ToolUseBlockParam): void {
 					case 'pending':
 						process.stdout.write('☐');
 						break;
-					case 'compeleted':
+					case 'completed':
 						process.stdout.write('✓');
 						break;
 					default:
