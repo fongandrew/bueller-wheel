@@ -198,6 +198,9 @@ function logToolUse(block: BetaToolUseBlock | ToolUseBlockParam): void {
 		case 'write':
 			process.stdout.write(`${(block.input as any)?.file_path}`);
 			break;
+		case 'edit':
+			process.stdout.write(`${(block.input as any)?.file_path}`);
+			break;
 		case 'bash':
 			process.stdout.write(`${(block.input as any)?.command}`);
 			break;
