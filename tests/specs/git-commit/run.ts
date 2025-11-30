@@ -45,8 +45,8 @@ await assertFileExists('test.txt', 'FAIL: test.txt was not created');
 // Check that test.txt has the correct content
 await assertFileContains(
 	'test.txt',
-	'Test file for git',
-	"FAIL: test.txt does not contain 'Test file for git'",
+	'Cheeseballs',
+	"FAIL: test.txt does not contain 'Cheeseballs'",
 );
 
 // Check that the issue file has a @claude response
