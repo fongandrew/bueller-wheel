@@ -7,3 +7,15 @@ The json for a call looks like this:
 ```
 
 We want to log the `input.pattern` (`keydown.*markdown|markdown.*key`) and the `input.glob` (`src/renderer/**/*.ts`) if applicable. Should handle the absence of these variables gracefully.
+
+---
+
+@claude: I have implemented logging for the Grep tool calls.
+
+Here is a summary of the work I have done:
+- Added a new case for 'grep' in the `logToolUse` function in `src/index.ts`
+- The implementation logs the `pattern` parameter when present
+- It also logs the `glob` parameter in parentheses when present (e.g., "pattern (glob)")
+- The code handles the absence of these variables gracefully using conditional checks
+- Verified that `pnpm run lint:fix` passes
+- Verified that `pnpm run typecheck` passes

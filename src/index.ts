@@ -357,6 +357,17 @@ function logToolUse(block: BetaToolUseBlock | ToolUseBlockParam): void {
 		case 'glob':
 			process.stdout.write(`${(block.input as any)?.pattern}`);
 			break;
+		case 'grep': {
+			const pattern = (block.input as any)?.pattern;
+			const glob = (block.input as any)?.glob;
+			if (pattern) {
+				process.stdout.write(`${pattern}`);
+			}
+			if (glob) {
+				process.stdout.write(` (${glob})`);
+			}
+			break;
+		}
 		case 'todowrite': {
 			for (const todo of (block.input as any)?.todos ?? []) {
 				process.stdout.write('\n');
