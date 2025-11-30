@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Colors in output for better readability
 
 ### Fixed
-- Grep tool usage not being fully sandboxed
+- Grep tool usage calls not being logged properly
 
 ## [0.1.0] - 2025-01-30
 
