@@ -13,14 +13,23 @@ A simple wrapper that runs Claude Code in a headless loop to process issues from
    ```
 4. Run `bueller.js`.
 
-## Issue Format
+## Directory Structure
+
+### Issues Directory
 
 Issues are markdown files in the `issues/` directory with this structure:
 
-### Directories
 - `issues/open/` - Issues to be processed
 - `issues/review/` - Completed issues
 - `issues/stuck/` - Issues requiring human intervention
+
+### FAQ Directory
+
+The `faq/` directory contains frequently asked questions and troubleshooting guides that help the agent resolve common issues:
+
+- `faq/` - Markdown files with solutions to common problems
+- The agent is instructed to check this directory when encountering issues
+- Configurable via `--faq-dir` (default: `./faq`)
 
 ### Filename Format
 `p{priority}-{order}-{description}.md`
@@ -84,10 +93,11 @@ Here is a summary of the work I have done:
 ## CLI Options
 
 ```bash
-./bueller.js --issues-dir ./my-issues --max-iterations 50 --git-commit --prompt ./my-prompt.md
+./bueller.js --issues-dir ./my-issues --faq-dir ./my-faq --max-iterations 50 --git-commit --prompt ./my-prompt.md
 ```
 
 - `--issues-dir <path>`: Issues directory (default: `./issues`)
+- `--faq-dir <path>`: FAQ directory (default: `./faq`)
 - `--max-iterations <number>`: Maximum iterations (default: `100`)
 - `--git-commit`: Enable automatic git commits after each iteration (default: disabled)
 - `--prompt <path>`: Path to custom prompt template file (default: `<issues-dir>/prompt.md`)
@@ -107,6 +117,7 @@ Bueller uses a customizable prompt template system that allows you to tailor the
 The following variables are available in your prompt template:
 
 - `[ISSUES_DIR]` - The issues directory path (e.g., `./issues`)
+- `[FAQ_DIR]` - The FAQ directory path (e.g., `./faq`)
 - `[ISSUE_DIR_OPEN]` - The open subdirectory name (always `open`)
 - `[ISSUE_DIR_REVIEW]` - The review subdirectory name (always `review`)
 - `[ISSUE_DIR_STUCK]` - The stuck subdirectory name (always `stuck`)
