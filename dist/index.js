@@ -3,6 +3,15 @@ import { execSync } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
+// Colors for output
+const colors = {
+    red: '\x1b[0;31m',
+    green: '\x1b[0;32m',
+    yellow: '\x1b[1;33m',
+    blue: '\x1b[0;34m',
+    cyan: '\x1b[0;36m',
+    reset: '\x1b[0m',
+};
 const ISSUE_DIR_OPEN = 'open';
 const ISSUE_DIR_REVIEW = 'review';
 const ISSUE_DIR_STUCK = 'stuck';
@@ -136,7 +145,7 @@ function gitCommit(issueFile, status) {
                 encoding: 'utf-8',
             }).trim();
             if (!untrackedFiles) {
-                console.log('No changes to commit');
+                console.log(`${colors.cyan}No changes to commit${colors.reset}`);
                 return;
             }
         }
@@ -150,10 +159,10 @@ function gitCommit(issueFile, status) {
         execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
             stdio: 'inherit',
         });
-        console.log(`\nGit commit created: ${commitMessage}`);
+        console.log(`${colors.green}\nGit commit created: ${commitMessage}${colors.reset}`);
     }
     catch (error) {
-        console.error(`Failed to create git commit: ${String(error)}`);
+        console.error(`${colors.red}Failed to create git commit: ${String(error)}${colors.reset}`);
     }
 }
 function getDefaultPromptTemplate() {
@@ -256,12 +265,12 @@ async function loadOrCreatePromptTemplate(promptFile) {
     // If prompt file exists, load it
     try {
         await fs.access(promptFile);
-        console.log(`Loading prompt template from: ${promptFile}`);
+        console.log(`${colors.cyan}Loading prompt template from: ${promptFile}${colors.reset}`);
         return await fs.readFile(promptFile, 'utf-8');
     }
     catch {
         // Otherwise, create the default prompt template
-        console.log(`Prompt file not found. Creating default template at: ${promptFile}`);
+        console.log(`${colors.yellow}Prompt file not found. Creating default template at: ${promptFile}${colors.reset}`);
         const defaultTemplate = getDefaultPromptTemplate();
         // Ensure the directory exists
         const promptDir = path.dirname(promptFile);
@@ -289,7 +298,7 @@ function buildSystemPrompt(template, issuesDir, faqDir, issueFile) {
 }
 function logToolUse(block) {
     process.stdout.write('\n');
-    process.stdout.write(`[${block.name}] `);
+    process.stdout.write(`${colors.cyan}[${block.name}]${colors.reset} `);
     switch (block.name.toLowerCase()) {
         case 'read':
         case 'write':
@@ -302,18 +311,29 @@ function logToolUse(block) {
         case 'glob':
             process.stdout.write(`${block.input?.pattern}`);
             break;
+        case 'grep': {
+            const pattern = block.input?.pattern;
+            const glob = block.input?.glob;
+            if (pattern) {
+                process.stdout.write(`${pattern}`);
+            }
+            if (glob) {
+                process.stdout.write(` (${glob})`);
+            }
+            break;
+        }
         case 'todowrite': {
             for (const todo of block.input?.todos ?? []) {
                 process.stdout.write('\n');
                 switch (todo.status) {
                     case 'in_progress':
-                        process.stdout.write('⧖');
+                        process.stdout.write(`${colors.yellow}⧖${colors.reset}`);
                         break;
                     case 'pending':
                         process.stdout.write('☐');
                         break;
                     case 'completed':
-                        process.stdout.write('✓');
+                        process.stdout.write(`${colors.green}✓${colors.reset}`);
                         break;
                     default:
                         process.stdout.write(todo.status);
@@ -361,7 +381,7 @@ function logSDKMessage(item) {
 async function runAgent(options) {
     const { template, issuesDir, faqDir, issueFile, continueMode, continuePrompt } = options;
     const systemPrompt = buildSystemPrompt(template, issuesDir, faqDir, issueFile);
-    console.log('\n--- Starting agent ---');
+    console.log(`${colors.blue}\n--- Starting agent ---${colors.reset}`);
     const stream = query({
         prompt: continueMode ? continuePrompt : systemPrompt,
         options: {
@@ -373,12 +393,12 @@ async function runAgent(options) {
     for await (const item of stream) {
         logSDKMessage(item);
     }
-    console.log('\n--- Agent finished ---');
+    console.log(`${colors.blue}\n--- Agent finished ---${colors.reset}`);
 }
 async function main() {
     const config = parseArgs();
-    console.log('Bueller? Bueller?');
-    console.log('-----------------');
+    console.log(`${colors.cyan}Bueller? Bueller?${colors.reset}`);
+    console.log(`${colors.cyan}-----------------${colors.reset}`);
     console.log(`Issues directory: ${config.issuesDir}`);
     console.log(`FAQ directory: ${config.faqDir}`);
     console.log(`Max iterations: ${config.maxIterations}`);
@@ -393,10 +413,10 @@ async function main() {
     let iteration = 0;
     while (iteration < config.maxIterations) {
         iteration++;
-        console.log(`\n### Iteration ${iteration} ###\n`);
+        console.log(`${colors.yellow}\n### Iteration ${iteration} ###${colors.reset}\n`);
         const openIssues = await getOpenIssues(config.issuesDir);
         if (openIssues.length === 0) {
-            console.log('No more issues in open/. Exiting.');
+            console.log(`${colors.green}No more issues in open/. Exiting.${colors.reset}`);
             break;
         }
         console.log(`Found ${openIssues.length} open issue(s)`);
@@ -451,12 +471,12 @@ async function main() {
         }
     }
     if (iteration >= config.maxIterations) {
-        console.log(`\nReached maximum iterations (${config.maxIterations}). Exiting.`);
+        console.log(`${colors.yellow}\nReached maximum iterations (${config.maxIterations}). Exiting.${colors.reset}`);
     }
-    console.log('\nDone!');
+    console.log(`${colors.green}\nDone!${colors.reset}`);
 }
 main().catch((error) => {
-    console.error('Error:', error);
+    console.error(`${colors.red}Error:${colors.reset}`, error);
     process.exit(1);
 });
 //# sourceMappingURL=index.js.map
