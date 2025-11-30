@@ -16,7 +16,7 @@
 	},
 	"keywords": [],
 	"author": "Andrew Fong <id@andrewfong.com>",
-	"license": "UNLICENSED",
+	"license": "MIT",
 	"devDependencies": {
 		"@anthropic-ai/sdk": "^0.71.0",
 		"@eslint/js": "^9.30.1",
