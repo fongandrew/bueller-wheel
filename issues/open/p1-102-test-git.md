@@ -35,3 +35,5 @@ Error: FAIL: Failed to verify git commit: Command failed: git log --oneline
 fatal: your current branch 'main' does not have any commits yet
 
     at <anonymous> (/Users/afong/repos/bueller/tests/specs/git-commit/run.ts:72:8)
+
+IMPORTANT: The instructions themselves should NOT prompt the agent to git commit. It is up to Bueller itself to commit. We need to just update our test set up to handle the above error.
