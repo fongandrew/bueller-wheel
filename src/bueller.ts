@@ -131,8 +131,14 @@ function gitCommit(issueFile: string, status: string): void {
 		// Check if there are any changes to commit
 		try {
 			execSync('git diff --quiet && git diff --cached --quiet');
-			console.log('No changes to commit');
-			return;
+			// Also check for untracked files
+			const untrackedFiles = execSync('git ls-files --others --exclude-standard', {
+				encoding: 'utf-8',
+			}).trim();
+			if (!untrackedFiles) {
+				console.log('No changes to commit');
+				return;
+			}
 		} catch {
 			// There are changes, proceed with commit
 		}

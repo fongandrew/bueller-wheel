@@ -24,6 +24,7 @@ const result = await runBueller({
 	issuesDir: './issues',
 	maxIterations: 10,
 	timeoutMs: 300000,
+	additionalArgs: ['--git-commit'],
 });
 
 if (result.timedOut) {
@@ -59,7 +60,7 @@ await assertFileContains(
 // Verify that a git commit was made
 try {
 	const commitLog = execSync('git log --oneline', { encoding: 'utf-8' });
-	if (!commitLog.includes('Add test.txt file')) {
+	if (!commitLog.includes('p1-001-git-commit done')) {
 		throw new Error(
 			`FAIL: Git log does not contain expected commit message. Log: ${commitLog}`,
 		);
