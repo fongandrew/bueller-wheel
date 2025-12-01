@@ -145,6 +145,10 @@ npx bueller-wheel --git
 npx bueller-wheel --max 50
 npx bueller-wheel --continue "fix the bug"
 
+# Summarize issues
+npx bueller-wheel --summarize p1-003-task.md
+npx bueller-wheel --summarize p1-003.md p2-005.md --index 1
+
 # Combine with other options
 npx bueller-wheel --run --issues-dir ./my-issues --faq-dir ./my-faq
 npx bueller-wheel --max 50 --git --prompt ./my-prompt.md
@@ -159,11 +163,13 @@ bueller-wheel --git
 - `--git`: Enable automatic git commits and start the loop
 - `--max <number>`: Start with maximum N iterations (default: `25`)
 - `--continue [prompt]`: Continue from previous session. Optional prompt defaults to "continue" if not provided
+- `--summarize <issue...>`: Display abbreviated summaries of issue conversation history
 
 **Configuration Options**:
 - `--issues-dir <path>`: Issues directory (default: `./issues`)
 - `--faq-dir <path>`: FAQ directory (default: `./faq`)
 - `--prompt <path>`: Path to custom prompt template file (default: `<issues-dir>/prompt.md`)
+- `--index <N>` or `--index <M,N>`: Expand specific messages when using `--summarize` (see below)
 
 ### Custom Prompt Templates
 
@@ -234,6 +240,54 @@ p0-002-git in progress
 p0-002-git stuck
 p0-002-git unknown
 ```
+
+### Issue Summarization
+
+The `--summarize` command provides a quick way to review issue conversation history without opening files. This is especially useful for:
+- Quickly understanding what happened in an issue
+- Reviewing multiple issues at once
+- Checking the status and progress of work
+
+**Basic Usage:**
+
+```bash
+# Summarize a single issue (by filename - searches across open/, review/, stuck/)
+npx bueller-wheel --summarize p1-003-task.md
+
+# Summarize by partial filename
+npx bueller-wheel --summarize p1-003.md
+
+# Summarize with full path
+npx bueller-wheel --summarize /path/to/issues/open/p1-003-task.md
+
+# Summarize multiple issues
+npx bueller-wheel --summarize p1-003.md p1-004.md p2-001.md
+```
+
+**Summary Format:**
+
+By default, summaries show:
+- Issue filename and status (open/review/stuck)
+- First message: up to 300 characters
+- Middle messages: up to 80 characters each (abbreviated)
+- Last message: up to 300 characters
+
+**Expanding Messages:**
+
+Use `--index` to expand specific messages to their full content:
+
+```bash
+# Expand a single message at index 2
+npx bueller-wheel --summarize p1-003.md --index 2
+
+# Expand a range of messages (indices 1 through 3)
+npx bueller-wheel --summarize p1-003.md --index 1,3
+
+# Works with multiple issues (expands same indices for all)
+npx bueller-wheel --summarize p1-003.md p1-004.md --index 0,2
+```
+
+**Note:** Message indices are 0-based (first message is index 0).
 
 ## Development
 

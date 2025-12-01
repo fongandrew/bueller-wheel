@@ -94,4 +94,16 @@ Your issue file: [ISSUE_FILE_PATH]
 
 **Critical:** ALWAYS check the FAQ directory ([FAQ_DIR]/) to see if there is a guide when you encounter a problem.
 
+## Helpful Commands
+
+If you need to quickly review an issue's conversation history, you can use the `--summarize` command:
+
+```bash
+bueller-wheel --summarize [ISSUE_FILE]
+bueller-wheel --summarize [ISSUE_FILE] --index N        # Expand message at index N
+bueller-wheel --summarize [ISSUE_FILE] --index M,N      # Expand messages from M to N
+```
+
+This displays an abbreviated summary of the issue, showing the first/last messages at 300 characters and middle messages at 80 characters. You can use either full file paths or just filenames (it will search across open/, review/, and stuck/ directories).
+
 Now, please process the issue at [ISSUE_FILE_PATH].
