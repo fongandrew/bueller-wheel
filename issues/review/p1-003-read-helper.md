@@ -45,3 +45,15 @@ Decompose this task into smaller tasks if needed.
 Write a simple test for this. Make sure `pnpm test` passes after this. The test doesn't have to test the main rain loop, just the issue summarization and finding.
 
 Update the default prompt and README to referenec this new functionality.
+
+---
+
+@claude: I have decomposed this task into four focused sub-tasks.
+
+Here is a summary of the work I have done:
+- Created `p1-003-read-helper-001.md` to build the core issue parser utility
+- Created `p1-003-read-helper-002.md` to implement the CLI command with all requested features (truncation, --index, multi-file support, directory search)
+- Created `p1-003-read-helper-003.md` to write comprehensive tests for the functionality
+- Created `p1-003-read-helper-004.md` to update documentation (prompt template and README)
+
+Each child issue has clear requirements and dependencies noted where applicable.
