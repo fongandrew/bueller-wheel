@@ -12,7 +12,7 @@ mkdir -p issues/open
 echo "@user: Please create a test file with 'Hello World'" > issues/open/p0-100-my-task.md
 
 # Run bueller-wheel to complete the task
-npx bueller-wheel
+npx bueller-wheel --run
 ```
 
 ## Why?
@@ -139,18 +139,31 @@ The `open/` directory acts as an inbox for the agent on the current branch. The 
 ## CLI Options
 
 ```bash
-npx bueller-wheel --issues-dir ./my-issues --faq-dir ./my-faq --max-iterations 50 --git-commit --prompt ./my-prompt.md
+# Start the agent loop with various options
+npx bueller-wheel --run
+npx bueller-wheel --git
+npx bueller-wheel --max 50
+npx bueller-wheel --continue "fix the bug"
+
+# Combine with other options
+npx bueller-wheel --run --issues-dir ./my-issues --faq-dir ./my-faq
+npx bueller-wheel --max 50 --git --prompt ./my-prompt.md
 
 # Or if installed globally
-bueller-wheel --issues-dir ./my-issues --faq-dir ./my-faq --max-iterations 50 --git-commit --prompt ./my-prompt.md
+bueller-wheel --run
+bueller-wheel --git
 ```
 
+**Run Commands** (one required):
+- `--run`: Explicitly start the agent loop with defaults
+- `--git`: Enable automatic git commits and start the loop
+- `--max <number>`: Start with maximum N iterations (default: `25`)
+- `--continue [prompt]`: Continue from previous session. Optional prompt defaults to "continue" if not provided
+
+**Configuration Options**:
 - `--issues-dir <path>`: Issues directory (default: `./issues`)
 - `--faq-dir <path>`: FAQ directory (default: `./faq`)
-- `--max-iterations <number>`: Maximum iterations (default: `25`)
-- `--git-commit`: Enable automatic git commits after each iteration (default: disabled)
 - `--prompt <path>`: Path to custom prompt template file (default: `<issues-dir>/prompt.md`)
-- `--continue [prompt]`: Continue from previous session. Optional prompt defaults to "continue" if not provided
 
 ### Custom Prompt Templates
 
@@ -212,7 +225,7 @@ Note that only the immediate prior iteration is continued. The next iteration wi
 
 ### Git Auto-Commit
 
-When `--git-commit` is enabled, Bueller Wheel will automatically create a git commit after each iteration where work was done on an issue.
+When `--git` is enabled, Bueller Wheel will automatically create a git commit after each iteration where work was done on an issue.
 
 The commit message format includes the issue ID (the filename minus the `.md`) and status:
 ```
@@ -221,9 +234,16 @@ p0-002-git in progress
 p0-002-git stuck
 p0-002-git unknown
 ```
+
 ## Development
 
-`pnpm run dev` will execute the current `src/index.ts` script file with whatever args you pass to it.
+`pnpm run dev` will execute the current `src/index.ts` script file with whatever args you pass to it. For example:
+
+```bash
+pnpm run dev -- --run
+pnpm run dev -- --git
+pnpm run dev -- --max 10
+```
 
 ## End-to-End Testing
 
