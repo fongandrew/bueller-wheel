@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash(pnpm run dev:*)",
       "Bash(pnpm test:*)",
       "Bash(npx bueller-wheel:*)"
     ],
@@ -12,6 +13,6 @@
   "sandbox": {
     "enabled": true,
     "autoAllowBashIfSandboxed": true,
-    "excludedCommands": ["pnpm test:*"]
+    "excludedCommands": ["pnpm run dev:*", "pnpm test:*"]
   }
 }
