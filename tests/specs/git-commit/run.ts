@@ -19,12 +19,12 @@ try {
 	throw new Error(`FAIL: Failed to initialize git repository: ${errorMessage}`);
 }
 
-// Run Bueller
+// Run Bueller (git is now on by default)
 const result = await runBueller({
 	issuesDir: './issues',
 	maxIterations: 10,
 	timeoutMs: 300000,
-	additionalArgs: ['--git'],
+	additionalArgs: [],
 });
 
 if (result.timedOut) {

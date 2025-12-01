@@ -56,7 +56,7 @@ Bueller - Headless Claude Code Issue Processor
 
 USAGE:
   bueller --run [OPTIONS]             Start the agent loop
-  bueller --git [OPTIONS]             Start with auto-commit enabled
+  bueller --no-git [OPTIONS]          Start with auto-commit disabled
   bueller --max N [OPTIONS]           Start with max N iterations
   bueller --continue [PROMPT]         Continue from previous session
   bueller --summarize ISSUE...        Summarize one or more issues
@@ -64,7 +64,8 @@ USAGE:
 OPTIONS:
   --help              Show this help message and exit
   --run               Explicitly start the agent loop with defaults
-  --git               Enable automatic git commits and start the loop
+  --git               Enable automatic git commits (on by default)
+  --no-git            Disable automatic git commits
   --max N             Maximum number of iterations to run (default: 25)
   --continue [PROMPT] Continue from previous session (default prompt: "continue")
   --summarize ISSUE   Summarize issue(s) - accepts file paths or filenames
@@ -92,7 +93,7 @@ ISSUE FILE FORMAT:
 
 EXAMPLES:
   bueller --run
-  bueller --git
+  bueller --no-git
   bueller --max 50
   bueller --continue "fix the bug"
   bueller --run --issues-dir ./my-issues --faq-dir ./my-faq
@@ -119,6 +120,7 @@ function parseArgs(): Config {
 		'--faq-dir',
 		'--max',
 		'--git',
+		'--no-git',
 		'--prompt',
 		'--continue',
 		'--run',
@@ -143,7 +145,7 @@ function parseArgs(): Config {
 	let issuesDir = './issues';
 	let faqDir = './faq';
 	let maxIterations = 25;
-	let gitCommit = false;
+	let gitCommit = true;
 	let promptFile = path.join('./issues', 'prompt.md');
 	let continueMode = false;
 	let continuePrompt = 'continue';
@@ -166,6 +168,9 @@ function parseArgs(): Config {
 			shouldRun = true;
 		} else if (args[i] === '--git') {
 			gitCommit = true;
+			shouldRun = true;
+		} else if (args[i] === '--no-git') {
+			gitCommit = false;
 			shouldRun = true;
 		} else if (args[i] === '--prompt' && i + 1 < args.length) {
 			promptFile = args[++i]!;
@@ -192,7 +197,7 @@ function parseArgs(): Config {
 	// If no run flags are provided and not in summarize mode, show help and exit
 	if (!shouldRun && !summarizeMode) {
 		console.error(
-			`${colors.red}Error: No command specified. Use --run, --git, --max, --continue, or --summarize.${colors.reset}\n`,
+			`${colors.red}Error: No command specified. Use --run, --no-git, --max, --continue, or --summarize.${colors.reset}\n`,
 		);
 		showHelp();
 		process.exit(1);
