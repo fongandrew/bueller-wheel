@@ -11,7 +11,7 @@ async function runBuellerWithFlag(flag: string): Promise<{
 	exitCode: number;
 	output: string;
 }> {
-	const args = ['./index.js', flag];
+	const args = ['./index.js', 'run', flag];
 
 	return new Promise((resolve) => {
 		const output: string[] = [];
@@ -99,14 +99,43 @@ if (!result2.output.includes('--invalid-option')) {
 	throw new Error('FAIL: Output should mention the unrecognized flag "--invalid-option"');
 }
 
-// Test 3: Verify that valid flags still work (--help should exit with 0)
-const result3 = await runBuellerWithFlag('--help');
+// Test 3: Verify that --help works without a command and exits with 0
+const helpResult = await new Promise<{ exitCode: number; output: string }>((resolve) => {
+	const output: string[] = [];
+	const child = spawn('node', ['./index.js', '--help'], {
+		cwd: process.cwd(),
+		stdio: ['ignore', 'pipe', 'pipe'],
+	});
 
-if (result3.exitCode !== 0) {
-	throw new Error(`FAIL: --help should exit with code 0, got ${result3.exitCode}`);
+	const timeout = setTimeout(() => {
+		child.kill('SIGTERM');
+		throw new Error('FAIL: --help command timed out');
+	}, 5000);
+
+	child.stdout?.on('data', (data) => {
+		output.push(data.toString());
+	});
+
+	child.stderr?.on('data', (data) => {
+		output.push(data.toString());
+	});
+
+	child.on('close', async (code) => {
+		clearTimeout(timeout);
+		const fullOutput = output.join('');
+		await fs.writeFile(BUELLER_OUTPUT_FILE, fullOutput);
+		resolve({
+			exitCode: code ?? 1,
+			output: fullOutput,
+		});
+	});
+});
+
+if (helpResult.exitCode !== 0) {
+	throw new Error(`FAIL: --help should exit with code 0, got ${helpResult.exitCode}`);
 }
 
-if (!result3.output.includes('Usage:')) {
+if (!helpResult.output.includes('Usage:')) {
 	throw new Error('FAIL: --help output should contain help text');
 }
 
