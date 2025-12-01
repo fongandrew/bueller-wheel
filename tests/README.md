@@ -9,7 +9,7 @@ tests/
 ├── specs/             # Test case definitions
 │   ├── simple-task/
 │   │   ├── issues/    # Initial issues directory structure
-│   │   └── run.ts     # Test script (runs Bueller + verification)
+│   │   └── run.ts     # Test script (runs Bueller Wheel + verification)
 │   └── ...
 ├── test-runner.ts     # Test runner that executes all specs
 ├── verify-utils.ts    # Shared utilities for test scripts
@@ -20,7 +20,7 @@ tests/
 
 1. Each test case is a directory under `specs/` containing:
    - `issues/` - A complete issues directory with pre-made markdown files
-   - `run.ts` - A TypeScript script that runs Bueller and verifies the outcome
+   - `run.ts` - A TypeScript script that runs Bueller Wheel and verifies the outcome
 
 2. The test runner (`tests/test-runner.ts`):
    - Builds the bueller script (`pnpm run build`)
@@ -33,7 +33,7 @@ tests/
 
 3. Test scripts (`run.ts`) should:
    - Import utilities from `../../verify-utils.js`
-   - Call `runBueller()` to execute Bueller with specific CLI args
+   - Call `runBueller()` to execute Bueller Wheel with specific CLI args
    - Check that issues moved to expected directories
    - Verify file contents if needed
    - Throw `VerificationError` for failures
@@ -73,7 +73,7 @@ pnpm test simple-task
      runBueller,
    } from '../../verify-utils.js';
 
-   // Run Bueller with custom options
+   // Run Bueller Wheel with custom options
    const result = await runBueller({
      issuesDir: './issues',
      maxIterations: 10,
@@ -103,8 +103,8 @@ pnpm test simple-task
 
 The `verify-utils.ts` module provides:
 
-### Running Bueller
-- `runBueller(options?)` - Runs Bueller with specified options
+### Running Bueller Wheel
+- `runBueller(options?)` - Runs Bueller Wheel with specified options
   - `options.issuesDir` - Issues directory (default: `./issues`)
   - `options.maxIterations` - Max iterations (default: 10)
   - `options.timeoutMs` - Timeout in ms (default: 60000)
