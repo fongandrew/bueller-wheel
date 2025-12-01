@@ -475,6 +475,13 @@ async function runAgent(options) {
             settingSources: ['local', 'project', 'user'],
             permissionMode: 'acceptEdits',
             continue: continueMode,
+            canUseTool: async (toolName, input) => {
+                console.log(`${colors.red}Auto-denied tool:${colors.reset} ${toolName} ${String(input?.['command'] ?? input?.['file_path'] ?? '')}`);
+                return {
+                    behavior: 'deny',
+                    message: `You are running autonomously. The user cannot grant permission. Find a workaround or mark the issue as stuck. Check ${faqDir}/ to see if this is covered.`,
+                };
+            },
         },
     });
     for await (const item of stream) {

@@ -48,3 +48,21 @@ Here is a summary of the work I have done:
 - Refactored the `--help` test to run as a standalone command (without `run`) since help should work without a command
 - Verified that `pnpm run lint:fix` passes
 - Verified that `pnpm run typecheck` passes
+
+---
+
+@user: No, one of the two assertions is still failing. Esnure `pnpm run test unrecognized-flags` passes.
+
+---
+
+@claude: I have fixed the test infrastructure to properly run the unrecognized-flags test. The test now passes.
+
+Here is a summary of the work I have done:
+- Fixed the test runner to copy all compiled JS files from `out/src/` instead of just `index.js` from `dist/`. The issue was that `index.js` imports `issue-summarize.js` and `issue-reader.js` which weren't being copied.
+- Fixed the test runner's PROJECT_ROOT path calculation to work correctly when running from `out/tests/` (compiled) vs `tests/` (source).
+- Updated the test runner to use compiled `run.js` test scripts with `node` instead of `tsx`, avoiding sandbox restrictions with Unix sockets.
+- Made the `issues/` directory optional for tests that don't need it (like unrecognized-flags CLI validation test).
+- Updated SPECS_DIR to always point to the source `tests/specs/` directory.
+- Verified that `pnpm run lint:fix` passes.
+- Verified that `pnpm run typecheck` passes.
+- Verified that `pnpm run test unrecognized-flags` passes (test output shows: "PASS: unrecognized-flags" and "All tests passed!").

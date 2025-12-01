@@ -25,8 +25,12 @@ interface TestResult {
 }
 
 const SCRIPT_DIR = __dirname;
-const PROJECT_ROOT = path.resolve(SCRIPT_DIR, '..');
-const SPECS_DIR = path.join(SCRIPT_DIR, 'specs');
+// PROJECT_ROOT needs to work both when running from tests/ (tsx) and out/tests/ (node)
+const PROJECT_ROOT = SCRIPT_DIR.includes('/out/tests')
+	? path.resolve(SCRIPT_DIR, '..', '..')
+	: path.resolve(SCRIPT_DIR, '..');
+// SPECS_DIR is always in the source tests/ directory, not out/tests/
+const SPECS_DIR = path.join(PROJECT_ROOT, 'tests', 'specs');
 const TEMP_BASE = path.join(PROJECT_ROOT, '.test-tmp');
 
 async function buildProject(): Promise<void> {
@@ -42,11 +46,11 @@ async function buildProject(): Promise<void> {
 		process.exit(1);
 	}
 
-	const buelerPath = path.join(PROJECT_ROOT, 'dist', 'index.js');
+	const buelerPath = path.join(PROJECT_ROOT, 'out', 'src', 'index.js');
 	try {
 		await fs.access(buelerPath);
 	} catch {
-		console.error(`${colors.red}FAIL: Build did not produce dist/index.js${colors.reset}`);
+		console.error(`${colors.red}FAIL: Build did not produce out/src/index.js${colors.reset}`);
 		process.exit(1);
 	}
 
@@ -72,6 +76,8 @@ async function copyDirectory(src: string, dest: string): Promise<void> {
 
 async function runTest(testName: string): Promise<TestResult> {
 	const testDir = path.join(SPECS_DIR, testName);
+	// Compiled test scripts are in out/tests/specs/
+	const compiledTestDir = path.join(PROJECT_ROOT, 'out', 'tests', 'specs', testName);
 
 	try {
 		await fs.access(testDir);
@@ -83,15 +89,27 @@ async function runTest(testName: string): Promise<TestResult> {
 		};
 	}
 
-	const runScript = path.join(testDir, 'run.ts');
+	// Look for compiled run.js first (faster, no tsx dependency), fall back to run.ts with tsx
+	const compiledRunScript = path.join(compiledTestDir, 'run.js');
+	const sourceRunScript = path.join(testDir, 'run.ts');
+	let runScript: string;
+	let useNode = false;
+
 	try {
-		await fs.access(runScript);
+		await fs.access(compiledRunScript);
+		runScript = compiledRunScript;
+		useNode = true;
 	} catch {
-		return {
-			name: testName,
-			passed: false,
-			error: `run.ts not found in ${testDir}`,
-		};
+		try {
+			await fs.access(sourceRunScript);
+			runScript = sourceRunScript;
+		} catch {
+			return {
+				name: testName,
+				passed: false,
+				error: `Neither run.js nor run.ts found in ${testDir}`,
+			};
+		}
 	}
 
 	console.log(`${colors.yellow}Running test: ${testName}${colors.reset}`);
@@ -106,26 +124,30 @@ async function runTest(testName: string): Promise<TestResult> {
 	}
 	await fs.mkdir(testTemp, { recursive: true });
 
-	// Copy the built script
-	await fs.copyFile(path.join(PROJECT_ROOT, 'dist', 'index.js'), path.join(testTemp, 'index.js'));
+	// Copy all built scripts
+	const distDir = path.join(PROJECT_ROOT, 'out', 'src');
+	const distFiles = await fs.readdir(distDir);
+	for (const file of distFiles) {
+		if (file.endsWith('.js')) {
+			const src = path.join(distDir, file);
+			const dest = path.join(testTemp, file);
+			await fs.copyFile(src, dest);
+		}
+	}
 
-	// Copy the test issues directory
+	// Copy the test issues directory if it exists
 	const issuesDir = path.join(testDir, 'issues');
 	try {
 		await fs.access(issuesDir);
+		await copyDirectory(issuesDir, path.join(testTemp, 'issues'));
 	} catch {
-		return {
-			name: testName,
-			passed: false,
-			error: `issues directory not found in ${testDir}`,
-		};
+		// Issues directory is optional for some tests (e.g., CLI argument validation)
 	}
 
-	await copyDirectory(issuesDir, path.join(testTemp, 'issues'));
-
 	// Run the test script (which will run Bueller and verify results)
+	const command = useNode ? `node "${runScript}"` : `tsx "${runScript}"`;
 	try {
-		execSync(`tsx "${runScript}"`, {
+		execSync(command, {
 			cwd: testTemp,
 			stdio: 'pipe',
 			encoding: 'utf-8',
