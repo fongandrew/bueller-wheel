@@ -303,6 +303,9 @@ test('expandMessages: expands single message', async () => {
 
 	assert.equal(expanded.abbreviatedMessages[2]?.content, 'Last...');
 	assert.equal(expanded.abbreviatedMessages[2]?.isAbbreviated, true);
+
+	assert.deepEqual(expanded.filterToIndices, [1]);
+	assert.equal(expanded.isSingleIndex, true);
 });
 
 // Test: expandMessages with range
@@ -355,6 +358,9 @@ test('expandMessages: expands range of messages', async () => {
 
 	assert.equal(expanded.abbreviatedMessages[3]?.content, 'D...');
 	assert.equal(expanded.abbreviatedMessages[3]?.isAbbreviated, true);
+
+	assert.deepEqual(expanded.filterToIndices, [1, 2]);
+	assert.equal(expanded.isSingleIndex, false);
 });
 
 // Test: formatIssueSummary
@@ -388,37 +394,49 @@ test('formatIssueSummary: formats summary correctly', async () => {
 
 	assert.ok(formatted.includes('[OPEN]'));
 	assert.ok(formatted.includes('p1-001-test.md'));
-	assert.ok(formatted.includes('Messages: 2'));
-	assert.ok(formatted.includes('[0] @User:'));
+	assert.ok(formatted.includes('[0] @user:'));
 	assert.ok(formatted.includes('First message'));
-	assert.ok(formatted.includes('[1] @Claude [abbreviated]:'));
+	assert.ok(formatted.includes('[1] @claude:'));
 	assert.ok(formatted.includes('Second...'));
+	assert.ok(formatted.includes('Pass `--index N` or `--index M,N` to see more.'));
 });
 
-// Test: formatIssueSummary with file path option
-test('formatIssueSummary: includes file path when option enabled', async () => {
-	const summary: IssueSummary = {
+// Test: formatIssueSummary with --index option
+test('formatIssueSummary: filters messages with --index option', async () => {
+	const summary: IssueSummary & { filterToIndices?: number[]; isSingleIndex?: boolean } = {
 		issue: {
 			filePath: '/path/to/p1-002-test.md',
 			status: 'review',
 			filename: 'p1-002-test.md',
 		},
-		messageCount: 1,
+		messageCount: 2,
 		abbreviatedMessages: [
 			{
 				index: 0,
 				author: 'user',
-				content: 'Test',
+				content: 'Test message 0',
 				isAbbreviated: false,
-				fullContent: 'Test',
+				fullContent: 'Test message 0',
+			},
+			{
+				index: 1,
+				author: 'claude',
+				content: 'Test message 1',
+				isAbbreviated: false,
+				fullContent: 'Test message 1',
 			},
 		],
+		filterToIndices: [1],
+		isSingleIndex: true,
 	};
 
-	const formatted = formatIssueSummary(summary, { showFilePath: true });
+	const formatted = formatIssueSummary(summary, '1');
 
-	assert.ok(formatted.includes('Path: /path/to/p1-002-test.md'));
 	assert.ok(formatted.includes('[REVIEW]'));
+	assert.ok(formatted.includes('[1] @claude:'));
+	assert.ok(formatted.includes('Test message 1'));
+	assert.ok(!formatted.includes('[0] @user:'));
+	assert.ok(!formatted.includes('Pass `--index N`'));
 });
 
 // Run all tests

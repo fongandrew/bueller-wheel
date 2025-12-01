@@ -53,3 +53,25 @@ There are also some bugs to fix (maybe create separate sub-issues for this):
 
 Pass `--index N` or `--index M,N` to see more.
 ```
+
+---
+
+@claude: I have successfully implemented the subcommand system and fixed all the requested bugs.
+
+Here is a summary of the work I have done:
+- Replaced `--summarize` and `--run` with a subcommand system (`bueller run` and `bueller issue`)
+- Updated CLI help text to reflect the new subcommand usage pattern
+- Modified `parseArgs()` to parse the first argument as a command (run/issue)
+- Renamed `summarizeMode` to use command-based routing in the config
+- Fixed: Issue filenames without .md extension are now accepted (automatically appended in `runIssue()`)
+- Fixed: `--index N` now properly returns only a single item (not the 0-index item) via `isSingleIndex` flag
+- Fixed: Summarize formatting is now condensed - trims lines and replaces newlines with single spaces
+- Fixed: Output format matches the requested format exactly with status badge, condensed messages, and follow-up action hint
+- Updated `parseIndexSpec()` to return both indices array and `isSingleIndex` boolean
+- Updated `expandMessages()` to include `filterToIndices` and `isSingleIndex` in the returned summary
+- Updated `formatIssueSummary()` to filter messages based on `filterToIndices` and conditionally show the follow-up hint
+- Added `condenseText()` helper function for compact message display
+- Updated default prompt template to reference `bueller issue` instead of `bueller --summarize`
+- Updated unit tests in `tests/unit/issue-summarize.test.ts` to match new function signatures
+- All code passes `pnpm run lint:fix` and `pnpm run typecheck` validation
+- Followed project code style guidelines (ESLint, Prettier, TypeScript best practices)

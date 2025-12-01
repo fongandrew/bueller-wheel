@@ -212,9 +212,11 @@ export async function summarizeIssue(locatedIssue: LocatedIssue): Promise<IssueS
  * Parses index specification (e.g., "3" or "1,3")
  *
  * @param indexSpec - Index specification string
- * @returns Array of indices to expand, or null if invalid
+ * @returns Object with indices array and whether it's a single index, or null if invalid
  */
-export function parseIndexSpec(indexSpec: string): number[] | null {
+export function parseIndexSpec(
+	indexSpec: string,
+): { indices: number[]; isSingleIndex: boolean } | null {
 	const parts = indexSpec.split(',').map((s) => s.trim());
 
 	if (parts.length === 1) {
@@ -223,7 +225,7 @@ export function parseIndexSpec(indexSpec: string): number[] | null {
 		if (isNaN(index) || index < 0) {
 			return null;
 		}
-		return [index];
+		return { indices: [index], isSingleIndex: true };
 	}
 
 	if (parts.length === 2) {
@@ -237,7 +239,7 @@ export function parseIndexSpec(indexSpec: string): number[] | null {
 		for (let i = start; i <= end; i++) {
 			indices.push(i);
 		}
-		return indices;
+		return { indices, isSingleIndex: false };
 	}
 
 	return null;
@@ -248,13 +250,18 @@ export function parseIndexSpec(indexSpec: string): number[] | null {
  *
  * @param summary - Issue summary
  * @param indexSpec - Index specification (e.g., "3" or "1,3")
- * @returns New summary with expanded messages
+ * @returns New summary with expanded messages and filter info
  */
-export function expandMessages(summary: IssueSummary, indexSpec: string): IssueSummary {
-	const indices = parseIndexSpec(indexSpec);
-	if (!indices) {
+export function expandMessages(
+	summary: IssueSummary,
+	indexSpec: string,
+): IssueSummary & { filterToIndices?: number[]; isSingleIndex?: boolean } {
+	const parsed = parseIndexSpec(indexSpec);
+	if (!parsed) {
 		return summary;
 	}
+
+	const { indices, isSingleIndex } = parsed;
 
 	const expandedMessages = summary.abbreviatedMessages.map((msg) => {
 		if (indices.includes(msg.index)) {
@@ -270,19 +277,35 @@ export function expandMessages(summary: IssueSummary, indexSpec: string): IssueS
 	return {
 		...summary,
 		abbreviatedMessages: expandedMessages,
+		filterToIndices: indices,
+		isSingleIndex,
 	};
+}
+
+/**
+ * Condenses text by trimming lines and replacing newlines with single spaces
+ *
+ * @param text - Text to condense
+ * @returns Condensed text
+ */
+function condenseText(text: string): string {
+	return text
+		.split('\n')
+		.map((line) => line.trim())
+		.filter((line) => line.length > 0)
+		.join(' ');
 }
 
 /**
  * Formats an issue summary for console output
  *
- * @param summary - Issue summary
- * @param options - Formatting options
+ * @param summary - Issue summary (may include filterToIndices and isSingleIndex)
+ * @param indexSpec - Optional index specification for filtering display
  * @returns Formatted string
  */
 export function formatIssueSummary(
-	summary: IssueSummary,
-	options?: { showFilePath?: boolean },
+	summary: IssueSummary & { filterToIndices?: number[]; isSingleIndex?: boolean },
+	indexSpec?: string,
 ): string {
 	const lines: string[] = [];
 
@@ -291,25 +314,21 @@ export function formatIssueSummary(
 	const filename = summary.issue.filename;
 	lines.push(`${statusBadge} ${filename}`);
 
-	if (options?.showFilePath) {
-		lines.push(`  Path: ${summary.issue.filePath}`);
-	}
-
-	lines.push(`  Messages: ${summary.messageCount}`);
-	lines.push('');
+	// Determine which messages to show
+	const messagesToShow = summary.filterToIndices
+		? summary.abbreviatedMessages.filter((msg) => summary.filterToIndices!.includes(msg.index))
+		: summary.abbreviatedMessages;
 
 	// Messages
-	for (const msg of summary.abbreviatedMessages) {
-		const author = msg.author === 'user' ? 'User' : 'Claude';
-		const abbrevMarker = msg.isAbbreviated ? ' [abbreviated]' : '';
-		lines.push(`  [${msg.index}] @${author}${abbrevMarker}:`);
+	for (const msg of messagesToShow) {
+		const content = msg.isAbbreviated ? condenseText(msg.content) : msg.content;
+		lines.push(`[${msg.index}] @${msg.author}: ${content}`);
+	}
 
-		// Indent message content
-		const contentLines = msg.content.split('\n');
-		for (const line of contentLines) {
-			lines.push(`    ${line}`);
-		}
+	// Add follow-up action hint if not showing specific indices
+	if (!indexSpec || !summary.isSingleIndex) {
 		lines.push('');
+		lines.push('Pass `--index N` or `--index M,N` to see more.');
 	}
 
 	return lines.join('\n');

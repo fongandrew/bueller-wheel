@@ -35,10 +35,9 @@ interface Config {
 	promptFile: string;
 	continueMode: boolean;
 	continuePrompt: string;
-	shouldRun: boolean;
-	summarizeMode: boolean;
-	summarizeIssues: string[];
-	summarizeIndex: string | undefined;
+	command: 'run' | 'issue';
+	issueReferences: string[];
+	issueIndex: string | undefined;
 }
 
 interface RunAgentOptions {
@@ -55,25 +54,24 @@ function showHelp(): void {
 Bueller - Headless Claude Code Issue Processor
 
 USAGE:
-  bueller --run [OPTIONS]             Start the agent loop
-  bueller --no-git [OPTIONS]          Start with auto-commit disabled
-  bueller --max N [OPTIONS]           Start with max N iterations
-  bueller --continue [PROMPT]         Continue from previous session
-  bueller --summarize ISSUE...        Summarize one or more issues
+  bueller run [OPTIONS]               Start the agent loop
+  bueller issue ISSUE... [OPTIONS]    View issue summaries
+
+COMMANDS:
+  run                 Start the agent loop to process issues
+  issue ISSUE...      Summarize one or more issues (accepts file paths or filenames)
 
 OPTIONS:
   --help              Show this help message and exit
-  --run               Explicitly start the agent loop with defaults
-  --git               Enable automatic git commits (on by default)
-  --no-git            Disable automatic git commits
-  --max N             Maximum number of iterations to run (default: 25)
-  --continue [PROMPT] Continue from previous session (default prompt: "continue")
-  --summarize ISSUE   Summarize issue(s) - accepts file paths or filenames
-  --index N           Expand message at index N (use with --summarize)
-  --index M,N         Expand message range from M to N (use with --summarize)
+  --git               Enable automatic git commits (on by default, run command only)
+  --no-git            Disable automatic git commits (run command only)
+  --max N             Maximum number of iterations to run (default: 25, run command only)
+  --continue [PROMPT] Continue from previous session (default prompt: "continue", run command only)
+  --index N           Expand message at index N (issue command only)
+  --index M,N         Expand message range from M to N (issue command only)
   --issues-dir DIR    Directory containing issue queue (default: ./issues)
   --faq-dir DIR       Directory containing FAQ/troubleshooting guides (default: ./faq)
-  --prompt FILE       Custom prompt template file (default: ./issues/prompt.md)
+  --prompt FILE       Custom prompt template file (default: ./issues/prompt.md, run command only)
 
 DIRECTORY STRUCTURE:
   issues/
@@ -92,14 +90,14 @@ ISSUE FILE FORMAT:
     p2: Non-blocking follow-up
 
 EXAMPLES:
-  bueller --run
-  bueller --no-git
-  bueller --max 50
-  bueller --continue "fix the bug"
-  bueller --run --issues-dir ./my-issues --faq-dir ./my-faq
-  bueller --summarize p1-003-read-helper-002.md
-  bueller --summarize p1-003.md p2-005.md --index 1
-  bueller --summarize /path/to/issue.md --index 0,2
+  bueller run
+  bueller run --no-git
+  bueller run --max 50
+  bueller run --continue "fix the bug"
+  bueller run --issues-dir ./my-issues --faq-dir ./my-faq
+  bueller issue p1-003-read-helper-002.md
+  bueller issue p1-003 p2-005 --index 1
+  bueller issue /path/to/issue.md --index 0,2
 
 For more information, visit: https://github.com/anthropics/bueller
 `);
@@ -109,9 +107,19 @@ function parseArgs(): Config {
 	const args = process.argv.slice(2);
 
 	// Check for help flag first
-	if (args.includes('--help') || args.includes('-h')) {
+	if (args.includes('--help') || args.includes('-h') || args.length === 0) {
 		showHelp();
 		process.exit(0);
+	}
+
+	// First argument should be the command
+	const command = args[0];
+	if (command !== 'run' && command !== 'issue') {
+		console.error(
+			`${colors.red}Error: Unknown command "${command}". Use "run" or "issue".${colors.reset}\n`,
+		);
+		showHelp();
+		process.exit(1);
 	}
 
 	// Define recognized flags
@@ -123,15 +131,13 @@ function parseArgs(): Config {
 		'--no-git',
 		'--prompt',
 		'--continue',
-		'--run',
-		'--summarize',
 		'--index',
 		'--help',
 		'-h',
 	]);
 
 	// Check for unrecognized flags
-	for (const arg of args) {
+	for (const arg of args.slice(1)) {
 		// Check if this looks like a flag (starts with -)
 		if (arg.startsWith('-')) {
 			if (!recognizedFlags.has(arg)) {
@@ -149,12 +155,11 @@ function parseArgs(): Config {
 	let promptFile = path.join('./issues', 'prompt.md');
 	let continueMode = false;
 	let continuePrompt = 'continue';
-	let shouldRun = false;
-	let summarizeMode = false;
-	const summarizeIssues: string[] = [];
-	let summarizeIndex: string | undefined;
+	const issueReferences: string[] = [];
+	let issueIndex: string | undefined;
 
-	for (let i = 0; i < args.length; i++) {
+	// Parse arguments starting from index 1 (skip the command)
+	for (let i = 1; i < args.length; i++) {
 		if (args[i] === '--issues-dir' && i + 1 < args.length) {
 			issuesDir = args[++i]!;
 			// Update default prompt file location if issues-dir is changed
@@ -165,48 +170,32 @@ function parseArgs(): Config {
 			faqDir = args[++i]!;
 		} else if (args[i] === '--max' && i + 1 < args.length) {
 			maxIterations = parseInt(args[++i]!, 10);
-			shouldRun = true;
 		} else if (args[i] === '--git') {
 			gitCommit = true;
-			shouldRun = true;
 		} else if (args[i] === '--no-git') {
 			gitCommit = false;
-			shouldRun = true;
 		} else if (args[i] === '--prompt' && i + 1 < args.length) {
 			promptFile = args[++i]!;
 		} else if (args[i] === '--continue') {
 			continueMode = true;
-			shouldRun = true;
 			// Check if next arg exists and doesn't start with --
 			if (i + 1 < args.length && !args[i + 1]!.startsWith('--')) {
 				continuePrompt = args[++i]!;
 			}
-		} else if (args[i] === '--run') {
-			shouldRun = true;
-		} else if (args[i] === '--summarize') {
-			summarizeMode = true;
-			// Collect all following non-flag arguments as issue references
-			while (i + 1 < args.length && !args[i + 1]!.startsWith('--')) {
-				summarizeIssues.push(args[++i]!);
-			}
 		} else if (args[i] === '--index' && i + 1 < args.length) {
-			summarizeIndex = args[++i]!;
+			issueIndex = args[++i]!;
+		} else if (!args[i]!.startsWith('--')) {
+			// Non-flag argument - collect as issue reference for issue command
+			if (command === 'issue') {
+				issueReferences.push(args[i]!);
+			}
 		}
 	}
 
-	// If no run flags are provided and not in summarize mode, show help and exit
-	if (!shouldRun && !summarizeMode) {
+	// Validate issue command
+	if (command === 'issue' && issueReferences.length === 0) {
 		console.error(
-			`${colors.red}Error: No command specified. Use --run, --no-git, --max, --continue, or --summarize.${colors.reset}\n`,
-		);
-		showHelp();
-		process.exit(1);
-	}
-
-	// Validate summarize mode
-	if (summarizeMode && summarizeIssues.length === 0) {
-		console.error(
-			`${colors.red}Error: --summarize requires at least one issue reference.${colors.reset}\n`,
+			`${colors.red}Error: "issue" command requires at least one issue reference.${colors.reset}\n`,
 		);
 		showHelp();
 		process.exit(1);
@@ -220,10 +209,9 @@ function parseArgs(): Config {
 		promptFile,
 		continueMode,
 		continuePrompt,
-		shouldRun,
-		summarizeMode,
-		summarizeIssues,
-		summarizeIndex,
+		command: command as 'run' | 'issue',
+		issueReferences,
+		issueIndex,
 	};
 }
 
@@ -342,7 +330,10 @@ Your issue file: [ISSUE_FILE_PATH]
 
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
 2. **Work on the task**: Do what the issue requests. When encountering issues, always check for a relevant guide in [FAQ_DIR]/ first.
-3. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
+3. **Verify**: Verify the following pass:
+   - [ ] \`pnpm run lint:fix\`
+   - [ ] \`pnpm run typecheck\`
+4. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
    \`\`\`
    ---
 
@@ -354,7 +345,7 @@ Your issue file: [ISSUE_FILE_PATH]
    - Item 3
    \`\`\`
 
-4. **Decide the outcome**: Choose ONE of the following actions:
+5. **Decide the outcome**: Choose ONE of the following actions:
 
    a. **CONTINUE** - You made progress but the task isn't complete yet
       - Leave the issue in \`[ISSUES_DIR]/[ISSUE_DIR_OPEN]/\` for the next iteration
@@ -387,12 +378,12 @@ Your issue file: [ISSUE_FILE_PATH]
 
 ## Helpful Commands
 
-If you need to quickly review an issue's conversation history, you can use the \`--summarize\` command:
+If you need to quickly review an issue's conversation history, you can use the \`issue\` command:
 
 \`\`\`bash
-bueller-wheel --summarize [ISSUE_FILE]
-bueller-wheel --summarize [ISSUE_FILE] --index N        # Expand message at index N
-bueller-wheel --summarize [ISSUE_FILE] --index M,N      # Expand messages from M to N
+bueller-wheel issue [ISSUE_FILE]
+bueller-wheel issue [ISSUE_FILE] --index N        # Expand message at index N
+bueller-wheel issue [ISSUE_FILE] --index M,N      # Expand messages from M to N
 \`\`\`
 
 This displays an abbreviated summary of the issue, showing the first/last messages at 300 characters and middle messages at 80 characters. You can use either full file paths or just filenames (it will search across open/, review/, and stuck/ directories).
@@ -559,11 +550,15 @@ async function runAgent(options: RunAgentOptions): Promise<void> {
 	console.log(`${colors.blue}\n--- Agent finished ---${colors.reset}`);
 }
 
-async function runSummarize(config: Config): Promise<void> {
-	console.log(`${colors.cyan}Summarizing issues...${colors.reset}\n`);
+async function runIssue(config: Config): Promise<void> {
+	for (const issueRef of config.issueReferences) {
+		// Normalize issue reference - add .md extension if missing
+		let normalizedRef = issueRef;
+		if (!issueRef.endsWith('.md') && !path.isAbsolute(issueRef)) {
+			normalizedRef = `${issueRef}.md`;
+		}
 
-	for (const issueRef of config.summarizeIssues) {
-		const located = await resolveIssueReference(issueRef, config.issuesDir);
+		const located = await resolveIssueReference(normalizedRef, config.issuesDir);
 
 		if (!located) {
 			console.error(`${colors.red}Error: Could not find issue: ${issueRef}${colors.reset}\n`);
@@ -574,13 +569,12 @@ async function runSummarize(config: Config): Promise<void> {
 			let summary = await summarizeIssue(located);
 
 			// Apply index expansion if specified
-			if (config.summarizeIndex) {
-				summary = expandMessages(summary, config.summarizeIndex);
+			if (config.issueIndex) {
+				summary = expandMessages(summary, config.issueIndex);
 			}
 
-			const formatted = formatIssueSummary(summary, { showFilePath: true });
+			const formatted = formatIssueSummary(summary, config.issueIndex);
 			console.log(formatted);
-			console.log('---\n');
 		} catch (error) {
 			console.error(
 				`${colors.red}Error summarizing ${issueRef}: ${String(error)}${colors.reset}\n`,
@@ -592,9 +586,9 @@ async function runSummarize(config: Config): Promise<void> {
 async function main(): Promise<void> {
 	const config = parseArgs();
 
-	// Handle summarize mode
-	if (config.summarizeMode) {
-		await runSummarize(config);
+	// Handle issue command
+	if (config.command === 'issue') {
+		await runIssue(config);
 		return;
 	}
 
