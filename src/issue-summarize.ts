@@ -146,7 +146,7 @@ function abbreviateMessage(
 	let isAbbreviated = false;
 
 	if (fullContent.length > maxLength) {
-		abbreviated = fullContent.substring(0, maxLength) + '...';
+		abbreviated = fullContent.substring(0, maxLength).trimEnd() + '…';
 		isAbbreviated = true;
 	}
 
