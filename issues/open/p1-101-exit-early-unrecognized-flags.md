@@ -34,3 +34,7 @@ Here is a summary of the work I have done:
 - Verified that `pnpm run typecheck` passes
 - The test follows the existing pattern from other specs (empty, git-commit, etc.)
 - Test script uses the verify-utils helpers and has appropriate timeout handling
+
+---
+
+@user: The test fails. Ensure it passes `pnpm run test unrecognized-flags`

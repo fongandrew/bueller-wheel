@@ -75,3 +75,9 @@ Here is a summary of the work I have done:
 - Updated unit tests in `tests/unit/issue-summarize.test.ts` to match new function signatures
 - All code passes `pnpm run lint:fix` and `pnpm run typecheck` validation
 - Followed project code style guidelines (ESLint, Prettier, TypeScript best practices)
+
+---
+
+@user: This requirement is still not passing:
+> We should accept both the issue with a full file path, like `./bueller-wheel issue path/to/something.md`
+
