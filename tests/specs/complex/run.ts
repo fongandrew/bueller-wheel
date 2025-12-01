@@ -17,6 +17,7 @@ const result = await runBueller({
 	issuesDir: './issues',
 	maxIterations: 3,
 	timeoutMs: 300000,
+	additionalArgs: ['--no-git'],
 });
 
 if (result.timedOut) {
