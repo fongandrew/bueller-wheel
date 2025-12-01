@@ -1,0 +1,1 @@
+@user: This is a short message that should not be truncated.

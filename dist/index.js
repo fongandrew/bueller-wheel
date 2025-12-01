@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
+import { expandMessages, formatIssueSummary, resolveIssueReference, summarizeIssue, } from './issue-summarize.js';
 // Colors for output
 const colors = {
     red: '\x1b[0;31m',
@@ -20,20 +21,24 @@ function showHelp() {
 Bueller - Headless Claude Code Issue Processor
 
 USAGE:
-  bueller --run [OPTIONS]             Start the agent loop
-  bueller --git [OPTIONS]             Start with auto-commit enabled
-  bueller --max N [OPTIONS]           Start with max N iterations
-  bueller --continue [PROMPT]         Continue from previous session
+  bueller run [OPTIONS]               Start the agent loop
+  bueller issue ISSUE... [OPTIONS]    View issue summaries
+
+COMMANDS:
+  run                 Start the agent loop to process issues
+  issue ISSUE...      Summarize one or more issues (accepts file paths or filenames)
 
 OPTIONS:
   --help              Show this help message and exit
-  --run               Explicitly start the agent loop with defaults
-  --git               Enable automatic git commits and start the loop
-  --max N             Maximum number of iterations to run (default: 25)
-  --continue [PROMPT] Continue from previous session (default prompt: "continue")
+  --git               Enable automatic git commits (on by default, run command only)
+  --no-git            Disable automatic git commits (run command only)
+  --max N             Maximum number of iterations to run (default: 25, run command only)
+  --continue [PROMPT] Continue from previous session (default prompt: "continue", run command only)
+  --index N           Expand message at index N (issue command only)
+  --index M,N         Expand message range from M to N (issue command only)
   --issues-dir DIR    Directory containing issue queue (default: ./issues)
   --faq-dir DIR       Directory containing FAQ/troubleshooting guides (default: ./faq)
-  --prompt FILE       Custom prompt template file (default: ./issues/prompt.md)
+  --prompt FILE       Custom prompt template file (default: ./issues/prompt.md, run command only)
 
 DIRECTORY STRUCTURE:
   issues/
@@ -52,11 +57,14 @@ ISSUE FILE FORMAT:
     p2: Non-blocking follow-up
 
 EXAMPLES:
-  bueller --run
-  bueller --git
-  bueller --max 50
-  bueller --continue "fix the bug"
-  bueller --run --issues-dir ./my-issues --faq-dir ./my-faq
+  bueller run
+  bueller run --no-git
+  bueller run --max 50
+  bueller run --continue "fix the bug"
+  bueller run --issues-dir ./my-issues --faq-dir ./my-faq
+  bueller issue p1-003-read-helper-002.md
+  bueller issue p1-003 p2-005 --index 1
+  bueller issue /path/to/issue.md --index 0,2
 
 For more information, visit: https://github.com/anthropics/bueller
 `);
@@ -64,9 +72,16 @@ For more information, visit: https://github.com/anthropics/bueller
 function parseArgs() {
     const args = process.argv.slice(2);
     // Check for help flag first
-    if (args.includes('--help') || args.includes('-h')) {
+    if (args.includes('--help') || args.includes('-h') || args.length === 0) {
         showHelp();
         process.exit(0);
+    }
+    // First argument should be the command
+    const command = args[0];
+    if (command !== 'run' && command !== 'issue') {
+        console.error(`${colors.red}Error: Unknown command "${command}". Use "run" or "issue".${colors.reset}\n`);
+        showHelp();
+        process.exit(1);
     }
     // Define recognized flags
     const recognizedFlags = new Set([
@@ -74,14 +89,15 @@ function parseArgs() {
         '--faq-dir',
         '--max',
         '--git',
+        '--no-git',
         '--prompt',
         '--continue',
-        '--run',
+        '--index',
         '--help',
         '-h',
     ]);
     // Check for unrecognized flags
-    for (const arg of args) {
+    for (const arg of args.slice(1)) {
         // Check if this looks like a flag (starts with -)
         if (arg.startsWith('-')) {
             if (!recognizedFlags.has(arg)) {
@@ -94,12 +110,14 @@ function parseArgs() {
     let issuesDir = './issues';
     let faqDir = './faq';
     let maxIterations = 25;
-    let gitCommit = false;
+    let gitCommit = true;
     let promptFile = path.join('./issues', 'prompt.md');
     let continueMode = false;
     let continuePrompt = 'continue';
-    let shouldRun = false;
-    for (let i = 0; i < args.length; i++) {
+    const issueReferences = [];
+    let issueIndex;
+    // Parse arguments starting from index 1 (skip the command)
+    for (let i = 1; i < args.length; i++) {
         if (args[i] === '--issues-dir' && i + 1 < args.length) {
             issuesDir = args[++i];
             // Update default prompt file location if issues-dir is changed
@@ -112,30 +130,36 @@ function parseArgs() {
         }
         else if (args[i] === '--max' && i + 1 < args.length) {
             maxIterations = parseInt(args[++i], 10);
-            shouldRun = true;
         }
         else if (args[i] === '--git') {
             gitCommit = true;
-            shouldRun = true;
+        }
+        else if (args[i] === '--no-git') {
+            gitCommit = false;
         }
         else if (args[i] === '--prompt' && i + 1 < args.length) {
             promptFile = args[++i];
         }
         else if (args[i] === '--continue') {
             continueMode = true;
-            shouldRun = true;
             // Check if next arg exists and doesn't start with --
             if (i + 1 < args.length && !args[i + 1].startsWith('--')) {
                 continuePrompt = args[++i];
             }
         }
-        else if (args[i] === '--run') {
-            shouldRun = true;
+        else if (args[i] === '--index' && i + 1 < args.length) {
+            issueIndex = args[++i];
+        }
+        else if (!args[i].startsWith('--')) {
+            // Non-flag argument - collect as issue reference for issue command
+            if (command === 'issue') {
+                issueReferences.push(args[i]);
+            }
         }
     }
-    // If no run flags are provided, show help and exit
-    if (!shouldRun) {
-        console.error(`${colors.red}Error: No run command specified. Use --run, --git, --max, or --continue to start the agent loop.${colors.reset}\n`);
+    // Validate issue command
+    if (command === 'issue' && issueReferences.length === 0) {
+        console.error(`${colors.red}Error: "issue" command requires at least one issue reference.${colors.reset}\n`);
         showHelp();
         process.exit(1);
     }
@@ -147,7 +171,9 @@ function parseArgs() {
         promptFile,
         continueMode,
         continuePrompt,
-        shouldRun,
+        command: command,
+        issueReferences,
+        issueIndex,
     };
 }
 async function ensureDirectories(issuesDir, faqDir) {
@@ -258,7 +284,10 @@ Your issue file: [ISSUE_FILE_PATH]
 
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
 2. **Work on the task**: Do what the issue requests. When encountering issues, always check for a relevant guide in [FAQ_DIR]/ first.
-3. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
+3. **Verify**: Verify the following pass:
+   - [ ] \`pnpm run lint:fix\`
+   - [ ] \`pnpm run typecheck\`
+4. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
    \`\`\`
    ---
 
@@ -270,7 +299,7 @@ Your issue file: [ISSUE_FILE_PATH]
    - Item 3
    \`\`\`
 
-4. **Decide the outcome**: Choose ONE of the following actions:
+5. **Decide the outcome**: Choose ONE of the following actions:
 
    a. **CONTINUE** - You made progress but the task isn't complete yet
       - Leave the issue in \`[ISSUES_DIR]/[ISSUE_DIR_OPEN]/\` for the next iteration
@@ -300,6 +329,18 @@ Your issue file: [ISSUE_FILE_PATH]
 - Use bash commands (mv, cat, echo) to manage files - you have full filesystem access
 
 **Critical:** ALWAYS check the FAQ directory ([FAQ_DIR]/) to see if there is a guide when you encounter a problem.
+
+## Helpful Commands
+
+If you need to quickly review an issue's conversation history, you can use the \`issue\` command:
+
+\`\`\`bash
+bueller-wheel issue [ISSUE_FILE]
+bueller-wheel issue [ISSUE_FILE] --index N        # Expand message at index N
+bueller-wheel issue [ISSUE_FILE] --index M,N      # Expand messages from M to N
+\`\`\`
+
+This displays an abbreviated summary of the issue, showing the first/last messages at 300 characters and middle messages at 80 characters. You can use either full file paths or just filenames (it will search across open/, review/, and stuck/ directories).
 
 Now, please process the issue at [ISSUE_FILE_PATH].`;
 }
@@ -441,8 +482,39 @@ async function runAgent(options) {
     }
     console.log(`${colors.blue}\n--- Agent finished ---${colors.reset}`);
 }
+async function runIssue(config) {
+    for (const issueRef of config.issueReferences) {
+        // Normalize issue reference - add .md extension if missing
+        let normalizedRef = issueRef;
+        if (!issueRef.endsWith('.md') && !path.isAbsolute(issueRef)) {
+            normalizedRef = `${issueRef}.md`;
+        }
+        const located = await resolveIssueReference(normalizedRef, config.issuesDir);
+        if (!located) {
+            console.error(`${colors.red}Error: Could not find issue: ${issueRef}${colors.reset}\n`);
+            continue;
+        }
+        try {
+            let summary = await summarizeIssue(located);
+            // Apply index expansion if specified
+            if (config.issueIndex) {
+                summary = expandMessages(summary, config.issueIndex);
+            }
+            const formatted = formatIssueSummary(summary, config.issueIndex);
+            console.log(formatted);
+        }
+        catch (error) {
+            console.error(`${colors.red}Error summarizing ${issueRef}: ${String(error)}${colors.reset}\n`);
+        }
+    }
+}
 async function main() {
     const config = parseArgs();
+    // Handle issue command
+    if (config.command === 'issue') {
+        await runIssue(config);
+        return;
+    }
     console.log(`${colors.cyan}Bueller? Bueller?${colors.reset}`);
     console.log(`${colors.cyan}-----------------${colors.reset}`);
     console.log(`Issues directory: ${config.issuesDir}`);
@@ -468,12 +540,14 @@ async function main() {
         console.log(`Found ${openIssues.length} open issue(s)`);
         console.log(`Next issue: ${openIssues[0]}`);
         const currentIssue = openIssues[0];
+        // Only use continue mode on the first iteration
+        const isFirstIteration = iteration === 1;
         await runAgent({
             template: promptTemplate,
             issuesDir: config.issuesDir,
             faqDir: config.faqDir,
             issueFile: currentIssue,
-            continueMode: config.continueMode,
+            continueMode: config.continueMode && isFirstIteration,
             continuePrompt: config.continuePrompt,
         });
         // Auto-commit if enabled and there's a current issue

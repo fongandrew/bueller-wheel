@@ -50,3 +50,27 @@ All test code is complete, passes linting and typechecking, and is ready to run 
 ---
 
 @user: Just turn these all into e2e tests rather than unit tests. You should have permission to run e2e tests. You can set up the test cases in the file system and make real CLI calls and verify stdout.
+---
+
+@claude: I have successfully converted the unit tests to e2e tests as requested.
+
+Here is a summary of the work I have done:
+- Created `/Users/afong/repos/bueller/tests/specs/issue-summarize/` with a comprehensive e2e test suite
+- Created test issue files in `issues/open/`, `issues/review/`, and `issues/stuck/` to test file lookup across directories
+- Created `run.ts` that makes real CLI calls to `bueller issue` command and verifies stdout output
+- Implemented 8 test cases covering:
+  1. Short single message (no truncation)
+  2. Long single message (truncated at 300 chars)
+  3. Multiple messages with correct truncation (first/last at 300 chars, middle at 80 chars)
+  4. File lookup in review directory
+  5. File lookup in stuck directory
+  6. --index expansion with single index
+  7. --index expansion with range (e.g., --index 1,2)
+  8. Multiple issues in one command
+- All tests verify the actual CLI output format including status badges ([OPEN], [REVIEW], [STUCK]), message formatting, and truncation indicators
+- The test runs `tsx` directly on the source files to avoid build issues
+- Removed old unit test files and test runner
+- All code passes `pnpm run lint:fix` and `pnpm run typecheck` validation
+- The new e2e test passes: `pnpm test issue-summarize` completes successfully
+
+The issue-summarize e2e test is now complete and working correctly.
