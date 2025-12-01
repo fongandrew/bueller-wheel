@@ -1,6 +1,8 @@
 # Bueller Wheel
 
-A headless Claude Code issue processor that runs in a loop and resolves issues or ticket files written in markdown
+> Life moves pretty fast. If you don't stop and look around once in a while, you could miss it.
+
+This is a headless Claude Code issue processor that runs in a loop and resolves issues or ticket files written in markdown.
 
 ## Quick Start
 
@@ -15,12 +17,12 @@ npx bueller-wheel
 
 ## Why?
 
-You want Claude Code to autonomously work on a large pile of issues while you eat lunch and watch a baseball game. Bueller Wheel helps tackle several issues you might encounter:
+You want Claude Code to autonomously work on a large pile of issues while you go on a day trip into the city. Bueller Wheel helps tackle several issues you might encounter:
 
 - **Claude stops processing after a few issues**: Claude Code tends to stop processing after completing a few tasks. Bueller Wheel keeps prompting Claude Code to work until all of the issues have been resolved.
 - **Claude forgets what it's doing**: As Claude Code uses up its context window, it tends to forget what it was working on. Bueller Wheel runs Claude Code with a fresh context window and prompt for each issue.
 - **You forget what Claude was doing**: If you successfully get Claude Code to work on a large number of tasks, you end up with a pile of code to review. Bueller Wheel structures each issue as a discrete reviewable chunk of work, in a format amenable to multiple iterations of feedback between you and Claude.
-- **Claude keeps making the same mistakes**: A Claude that forgets its history is doomed to repeat it. Bueller Wheel sets up an FAQ directory for Claude to speed up resolution of frequent pitfalls.
+- **Claude keeps making the same mistakes**: An agent that forgets its history is doomed to repeat it. Bueller Wheel sets up an FAQ directory for Claude to speed up resolution of frequent pitfalls.
 
 **Note**: Bueller Wheel is not a full-fledged task management system. It has no concept of assignment or dependency apart from linear file ordering. The sweet spot for this tool is **solo developers working on a single branch**. That said, you can make [parallel branches and agents](#working-with-multiple-branches) work.
 
