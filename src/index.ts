@@ -328,6 +328,9 @@ Here is a summary of the work I have done:
 
 Your issue file: [ISSUE_FILE_PATH]
 
+- To summarize: \`npx bueller-wheel issue [ISSUE_FILE_PATH]\`
+- To expand: \`npx bueller-wheel issue [ISSUE_FILE_PATH] --index <start>,<end>\`
+
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
 2. **Work on the task**: Do what the issue requests. When encountering issues, always check for a relevant guide in [FAQ_DIR]/ first.
 3. **Verify**: Verify the following pass:
@@ -376,17 +379,9 @@ Your issue file: [ISSUE_FILE_PATH]
 
 **Critical:** ALWAYS check the FAQ directory ([FAQ_DIR]/) to see if there is a guide when you encounter a problem.
 
-## Helpful Commands
+## Adding to the FAQ
 
-If you need to quickly review an issue's conversation history, you can use the \`issue\` command:
-
-\`\`\`bash
-bueller-wheel issue [ISSUE_FILE]
-bueller-wheel issue [ISSUE_FILE] --index N        # Expand message at index N
-bueller-wheel issue [ISSUE_FILE] --index M,N      # Expand messages from M to N
-\`\`\`
-
-This displays an abbreviated summary of the issue, showing the first/last messages at 300 characters and middle messages at 80 characters. You can use either full file paths or just filenames (it will search across open/, review/, and stuck/ directories).
+Consider adding a **CONCISE** FAQ in [FAQ_DIR]/ for non-obvious solutions, recurring issues, or multi-step troubleshooting that would help future agents. Skip trivial/one-off problems or topics already documented.
 
 Now, please process the issue at [ISSUE_FILE_PATH].`;
 }

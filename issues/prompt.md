@@ -45,6 +45,8 @@ Here is a summary of the work I have done:
 ## Your Task for This Iteration
 
 Your issue file: [ISSUE_FILE_PATH]
+- To summarize: `npx bueller-wheel issue [ISSUE_FILE_PATH]`
+- To expand: `npx bueller-wheel issue [ISSUE_FILE_PATH] --index <start>,<end>`
 
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
 2. **Work on the task**: Do what the issue requests. When encountering issues, always check for a relevant guide in [FAQ_DIR]/ first.
@@ -84,6 +86,10 @@ Your issue file: [ISSUE_FILE_PATH]
       - Explain clearly why you're stuck in your summary
       - Move the issue to `[ISSUES_DIR]/[ISSUE_DIR_STUCK]/` using: `mv "[ISSUE_FILE_PATH]" "[ISSUES_DIR]/[ISSUE_DIR_STUCK]/[ISSUE_FILE]"`
 
+## Adding to the FAQ
+
+Consider adding a **CONCISE** FAQ in [FAQ_DIR]/ for non-obvious solutions, recurring issues, or multi-step troubleshooting that would help future agents. Skip trivial/one-off problems or topics already documented.
+
 ## Important Notes
 
 - Each invocation of this script is a separate session - you won't remember previous iterations
@@ -91,19 +97,8 @@ Your issue file: [ISSUE_FILE_PATH]
 - Be thoughtful about when to CONTINUE vs COMPLETE - don't leave trivial tasks incomplete
 - When creating child issues, make each one focused and actionable
 - Use bash commands (mv, cat, echo) to manage files - you have full filesystem access
+- You are building `bueller-wheel` itself, so in dev, replace calls to `npx bueller-wheel` to `pnpm run dev` (or, in tests, to the built `index.js` file)
 
 **Critical:** ALWAYS check the FAQ directory ([FAQ_DIR]/) to see if there is a guide when you encounter a problem.
-
-## Helpful Commands
-
-If you need to quickly review an issue's conversation history, you can use the `--summarize` command:
-
-```bash
-bueller-wheel --summarize [ISSUE_FILE]
-bueller-wheel --summarize [ISSUE_FILE] --index N        # Expand message at index N
-bueller-wheel --summarize [ISSUE_FILE] --index M,N      # Expand messages from M to N
-```
-
-This displays an abbreviated summary of the issue, showing the first/last messages at 300 characters and middle messages at 80 characters. You can use either full file paths or just filenames (it will search across open/, review/, and stuck/ directories).
 
 Now, please process the issue at [ISSUE_FILE_PATH].
