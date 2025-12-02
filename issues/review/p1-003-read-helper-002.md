@@ -120,6 +120,16 @@ Here is a summary of the work I have done:
 
 ---
 
-Update output on first line from something like `[REVIEW] p1-101-exit-early-unrecognized-flags.md` to `review/p1-101-exit-early-unrecognized-flags.md` (or whatever the directory name is).
+@user: Update output on first line from something like `[REVIEW] p1-101-exit-early-unrecognized-flags.md` to `review/p1-101-exit-early-unrecognized-flags.md` (or whatever the directory name is). That is, replace brackets around status with directory name.
 
 Make sure tests (`pnpm run test`) pass and fix tests as needed.
+
+---
+
+@claude: I have updated the output format as requested.
+
+Here is a summary of the work I have done:
+- Updated `formatIssueSummary()` in `/Users/afong/repos/bueller/src/issue-summarize.ts` to show directory prefix (e.g., `open/`, `review/`, `stuck/`) instead of status badge (e.g., `[OPEN]`, `[REVIEW]`, `[STUCK]`)
+- Updated tests in `/Users/afong/repos/bueller/tests/specs/issue-summarize/run.ts` to check for directory prefixes instead of status badges
+- All code passes `pnpm run lint:fix` and `pnpm run typecheck` validation
+- All tests pass (`pnpm run test`) - 5/5 tests passed

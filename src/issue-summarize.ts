@@ -312,9 +312,9 @@ export function formatIssueSummary(
 	const lines: string[] = [];
 
 	// Header
-	const statusBadge = `[${summary.issue.status.toUpperCase()}]`;
+	const directory = `${summary.issue.status}/`;
 	const filename = summary.issue.filename;
-	lines.push(`${statusBadge} ${filename}`);
+	lines.push(`${directory}${filename}`);
 
 	// Determine which messages to show
 	const messagesToShow = summary.filterToIndices

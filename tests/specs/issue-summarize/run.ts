@@ -109,8 +109,8 @@ console.log('✓ Multiple messages truncation test passed\n');
 // Test 4: File lookup in review directory
 console.log('Test 4: File lookup across directories - review');
 const reviewOutput = runIssueCommand(['p1-004-in-review.md']);
-if (!reviewOutput.includes('[REVIEW]')) {
-	throw new Error('FAIL: Issue in review directory not marked as REVIEW');
+if (!reviewOutput.includes('review/')) {
+	throw new Error('FAIL: Issue in review directory not showing review/ prefix');
 }
 if (!reviewOutput.includes('This issue is in the review directory')) {
 	throw new Error('FAIL: Review issue content not found');
@@ -120,8 +120,8 @@ console.log('✓ Review directory lookup test passed\n');
 // Test 5: File lookup in stuck directory
 console.log('Test 5: File lookup across directories - stuck');
 const stuckOutput = runIssueCommand(['p1-005-stuck.md']);
-if (!stuckOutput.includes('[STUCK]')) {
-	throw new Error('FAIL: Issue in stuck directory not marked as STUCK');
+if (!stuckOutput.includes('stuck/')) {
+	throw new Error('FAIL: Issue in stuck directory not showing stuck/ prefix');
 }
 if (!stuckOutput.includes('This issue is in the stuck directory')) {
 	throw new Error('FAIL: Stuck issue content not found');
@@ -227,14 +227,14 @@ if (!multiIssueOutput.includes('p1-004-in-review.md')) {
 if (!multiIssueOutput.includes('p1-005-stuck.md')) {
 	throw new Error('FAIL: Third issue not found in multi-issue output');
 }
-if (!multiIssueOutput.includes('[OPEN]')) {
-	throw new Error('FAIL: [OPEN] status not found in multi-issue output');
+if (!multiIssueOutput.includes('open/')) {
+	throw new Error('FAIL: open/ prefix not found in multi-issue output');
 }
-if (!multiIssueOutput.includes('[REVIEW]')) {
-	throw new Error('FAIL: [REVIEW] status not found in multi-issue output');
+if (!multiIssueOutput.includes('review/')) {
+	throw new Error('FAIL: review/ prefix not found in multi-issue output');
 }
-if (!multiIssueOutput.includes('[STUCK]')) {
-	throw new Error('FAIL: [STUCK] status not found in multi-issue output');
+if (!multiIssueOutput.includes('stuck/')) {
+	throw new Error('FAIL: stuck/ prefix not found in multi-issue output');
 }
 
 console.log('✓ Multiple issues test passed\n');

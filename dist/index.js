@@ -282,6 +282,7 @@ Here is a summary of the work I have done:
 
 Your issue file: [ISSUE_FILE_PATH]
 
+Issue files may be long. Use CLI commands to read:
 - To summarize: \`npx bueller-wheel issue [ISSUE_FILE_PATH]\`
 - To expand: \`npx bueller-wheel issue [ISSUE_FILE_PATH] --index <start>,<end>\`
 
