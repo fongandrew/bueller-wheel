@@ -51,11 +51,11 @@ interface RunAgentOptions {
 
 function showHelp(): void {
 	console.log(`
-Bueller - Headless Claude Code Issue Processor
+Bueller Wheel - Headless Claude Code Issue Processor
 
 USAGE:
-  bueller run [OPTIONS]               Start the agent loop
-  bueller issue ISSUE... [OPTIONS]    View issue summaries
+  bueller-wheel run [OPTIONS]               Start the agent loop
+  bueller-wheel issue ISSUE... [OPTIONS]    View issue summaries
 
 COMMANDS:
   run                 Start the agent loop to process issues
@@ -90,14 +90,14 @@ ISSUE FILE FORMAT:
     p2: Non-blocking follow-up
 
 EXAMPLES:
-  bueller run
-  bueller run --no-git
-  bueller run --max 50
-  bueller run --continue "fix the bug"
-  bueller run --issues-dir ./my-issues --faq-dir ./my-faq
-  bueller issue p1-003-read-helper-002.md
-  bueller issue p1-003 p2-005 --index 1
-  bueller issue /path/to/issue.md --index 0,2
+  bueller-wheel run
+  bueller-wheel run --no-git
+  bueller-wheel run --max 50
+  bueller-wheel run --continue "fix the bug"
+  bueller-wheel run --issues-dir ./my-issues --faq-dir ./my-faq
+  bueller-wheel issue p1-003-read-helper-002.md
+  bueller-wheel issue p1-003 p2-005 --index 1
+  bueller-wheel issue /path/to/issue.md --index 0,2
 
 For more information, visit: https://github.com/anthropics/bueller
 `);
