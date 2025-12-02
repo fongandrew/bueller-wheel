@@ -2,7 +2,7 @@
 
 > Life moves pretty fast. If you don't stop and look around once in a while, you could miss it.
 
-This is a headless Claude Code issue processor that runs in a loop and resolves issues or ticket files written in markdown.
+This is a headless issue processor that runs in a loop and uses Claude to resolve issues or ticket files written in markdown. It plays nicely with Claude Code and uses the sames settings config.
 
 ## Quick Start
 
@@ -17,11 +17,11 @@ npx bueller-wheel --run
 
 ## Why?
 
-You want Claude Code to autonomously work on a large pile of issues while you go on a day trip into the city. Bueller Wheel helps tackle several issues you might encounter:
+You want Claude to autonomously work on a large pile of issues while you go on a day trip into the city. Bueller Wheel helps tackle several issues you might encounter:
 
-- **Claude stops processing after a few issues**: Claude Code tends to stop processing after completing a few tasks. Bueller Wheel keeps prompting Claude Code to work until all of the issues have been resolved.
-- **Claude forgets what it's doing**: As Claude Code uses up its context window, it tends to forget what it was working on. Bueller Wheel runs Claude Code with a fresh context window and prompt for each issue.
-- **You forget what Claude was doing**: If you successfully get Claude Code to work on a large number of tasks, you end up with a pile of code to review. Bueller Wheel structures each issue as a discrete reviewable chunk of work, in a format amenable to multiple iterations of feedback between you and Claude.
+- **Claude stops processing after a few issues**: Claude tends to stop processing after completing a few tasks. Bueller Wheel keeps prompting Claude to work until all of the issues have been resolved.
+- **Claude forgets what it's doing**: As Claude uses up its context window, it tends to forget what it was working on. Bueller Wheel runs Claude with a fresh context window and prompt for each issue.
+- **You forget what Claude was doing**: If you successfully get Claude to work on a large number of tasks, you end up with a pile of code to review. Bueller Wheel structures each issue as a discrete reviewable chunk of work, in a format amenable to multiple iterations of feedback between you and Claude.
 - **Claude keeps making the same mistakes**: An agent that forgets its history is doomed to repeat it. Bueller Wheel sets up an FAQ directory for Claude to speed up resolution of frequent pitfalls.
 
 **Note**: Bueller Wheel is not a full-fledged task management system. It has no concept of assignment or dependency apart from linear file ordering. The sweet spot for this tool is **solo developers working on a single branch**. That said, you can make [parallel branches and agents](#working-with-multiple-branches) work.
@@ -31,7 +31,7 @@ You want Claude Code to autonomously work on a large pile of issues while you go
 **The Processing Loop**
 
 1. Bueller Wheel finds the next issue in `issues/open/` (sorted alphabetically by filename)
-2. Claude Code reads the issue and works on the task
+2. Claude reads the issue and works on the task
 3. Claude appends its work summary to the issue file
 4. Claude decides the outcome:
    - **CONTINUE**: Keep working (stays in `open/`)
@@ -45,7 +45,7 @@ You want Claude Code to autonomously work on a large pile of issues while you go
 - Move issues from `review/` or `stuck/` back to `open/` if more work is required
 - Delete issues from `review/` when done reviewing, or archive them however you want
 
-**Each iteration is a fresh Claude Code session** - no memory between iterations, which keeps context focused.
+**Each iteration is a fresh Claude session** - no memory between iterations, which keeps context focused.
 
 **Inherits your project's Claude Code setup** - `bueller-wheel` uses the Anthropic API credential from whichever user you're logged in as. It inherits the same `.claude/settings.json` or `.claude/settings.local.json` as the Claude Code project it's used in. Whatever permissions apply to your regular `claude` CLI should also apply to `bueller-wheel`, with the exception that `bueller-wheel` starts in "accept edits" mode.
 
@@ -301,7 +301,7 @@ pnpm run dev -- --max 10
 
 ## End-to-End Testing
 
-**These tests use your actual live instance of Claude Code!**
+**These tests use your actual Anthropic / Claude credentials!**
 
 ```bash
 # Run all tests
