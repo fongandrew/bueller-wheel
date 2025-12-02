@@ -33,14 +33,10 @@ export function parseIssueContent(content) {
         if (!trimmedSection) {
             continue;
         }
-        // Check if this section starts with @user: or @claude:
-        if (trimmedSection.startsWith('@user:') || trimmedSection.startsWith('@claude:')) {
-            messages.push({
-                index: messageIndex++,
-                content: trimmedSection,
-            });
-        }
-        // If no match, skip this section (handles malformed sections)
+        messages.push({
+            index: messageIndex++,
+            content: trimmedSection,
+        });
     }
     return {
         messages,

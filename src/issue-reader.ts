@@ -61,14 +61,10 @@ export function parseIssueContent(content: string): ParsedIssue {
 			continue;
 		}
 
-		// Check if this section starts with @user: or @claude:
-		if (trimmedSection.startsWith('@user:') || trimmedSection.startsWith('@claude:')) {
-			messages.push({
-				index: messageIndex++,
-				content: trimmedSection,
-			});
-		}
-		// If no match, skip this section (handles malformed sections)
+		messages.push({
+			index: messageIndex++,
+			content: trimmedSection,
+		});
 	}
 
 	return {
@@ -89,4 +85,3 @@ export function getLatestMessage(issue: ParsedIssue): IssueMessage | undefined {
 	}
 	return issue.messages[issue.messages.length - 1];
 }
-
