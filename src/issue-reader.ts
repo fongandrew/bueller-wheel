@@ -6,9 +6,7 @@ import * as fs from 'node:fs/promises';
 export interface IssueMessage {
 	/** Zero-based index of the message in the conversation */
 	index: number;
-	/** Author of the message (either 'user' or 'claude') */
-	author: 'user' | 'claude';
-	/** Content of the message (trimmed) */
+	/** Content of the message including @author prefix (trimmed) */
 	content: string;
 }
 
@@ -64,20 +62,10 @@ export function parseIssueContent(content: string): ParsedIssue {
 		}
 
 		// Check if this section starts with @user: or @claude:
-		const userMatch = trimmedSection.match(/^@user:\s*([\s\S]*)$/);
-		const claudeMatch = trimmedSection.match(/^@claude:\s*([\s\S]*)$/);
-
-		if (userMatch) {
+		if (trimmedSection.startsWith('@user:') || trimmedSection.startsWith('@claude:')) {
 			messages.push({
 				index: messageIndex++,
-				author: 'user',
-				content: userMatch[1]!.trim(),
-			});
-		} else if (claudeMatch) {
-			messages.push({
-				index: messageIndex++,
-				author: 'claude',
-				content: claudeMatch[1]!.trim(),
+				content: trimmedSection,
 			});
 		}
 		// If no match, skip this section (handles malformed sections)
@@ -102,24 +90,3 @@ export function getLatestMessage(issue: ParsedIssue): IssueMessage | undefined {
 	return issue.messages[issue.messages.length - 1];
 }
 
-/**
- * Gets all messages from a specific author
- *
- * @param issue - Parsed issue object
- * @param author - Author to filter by ('user' or 'claude')
- * @returns Array of messages from the specified author
- */
-export function getMessagesByAuthor(issue: ParsedIssue, author: 'user' | 'claude'): IssueMessage[] {
-	return issue.messages.filter((msg) => msg.author === author);
-}
-
-/**
- * Formats a message for appending to an issue file
- *
- * @param author - Author of the message ('user' or 'claude')
- * @param content - Content of the message
- * @returns Formatted message string ready to append to an issue file
- */
-export function formatMessage(author: 'user' | 'claude', content: string): string {
-	return `---\n\n@${author}: ${content}`;
-}

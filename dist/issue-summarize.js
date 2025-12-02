@@ -66,6 +66,19 @@ export async function resolveIssueReference(reference, issuesDir) {
     return locateIssueFile(reference, issuesDir);
 }
 /**
+ * Condenses text by trimming lines and replacing newlines with single spaces
+ *
+ * @param text - Text to condense
+ * @returns Condensed text
+ */
+function condenseText(text) {
+    return text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0)
+        .join(' ');
+}
+/**
  * Abbreviates a message based on its position in the conversation
  *
  * @param message - The message to abbreviate
@@ -75,15 +88,16 @@ export async function resolveIssueReference(reference, issuesDir) {
  */
 function abbreviateMessage(message, _position, maxLength) {
     const fullContent = message.content;
-    let abbreviated = fullContent;
+    // Condense the content for abbreviation (replace newlines with spaces)
+    const condensed = condenseText(fullContent);
+    let abbreviated = condensed;
     let isAbbreviated = false;
-    if (fullContent.length > maxLength) {
-        abbreviated = fullContent.substring(0, maxLength).trimEnd() + '…';
+    if (condensed.length > maxLength) {
+        abbreviated = condensed.substring(0, maxLength).trimEnd() + '…';
         isAbbreviated = true;
     }
     return {
         index: message.index,
-        author: message.author,
         content: abbreviated,
         isAbbreviated,
         fullContent,
@@ -192,19 +206,6 @@ export function expandMessages(summary, indexSpec) {
     };
 }
 /**
- * Condenses text by trimming lines and replacing newlines with single spaces
- *
- * @param text - Text to condense
- * @returns Condensed text
- */
-function condenseText(text) {
-    return text
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-        .join(' ');
-}
-/**
  * Formats an issue summary for console output
  *
  * @param summary - Issue summary (may include filterToIndices and isSingleIndex)
@@ -223,8 +224,7 @@ export function formatIssueSummary(summary, indexSpec) {
         : summary.abbreviatedMessages;
     // Messages
     for (const msg of messagesToShow) {
-        const content = msg.isAbbreviated ? condenseText(msg.content) : msg.content;
-        lines.push(`[${msg.index}] @${msg.author}: ${content}`);
+        lines.push(`[${msg.index}] ${msg.content}`);
     }
     // Add follow-up action hint if not showing specific indices
     if (!indexSpec || !summary.isSingleIndex) {
