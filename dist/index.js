@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { execSync } from 'node:child_process';
 import * as fs from 'node:fs/promises';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import { expandMessages, formatIssueSummary, resolveIssueReference, summarizeIssue, } from './issue-summarize.js';
@@ -33,6 +34,7 @@ OPTIONS:
   --git               Enable automatic git commits (on by default, run command only)
   --no-git            Disable automatic git commits (run command only)
   --max N             Maximum number of iterations to run (default: 25, run command only)
+  --model MODEL       Model to use (e.g., opus, sonnet, haiku, or full model ID)
   --continue [PROMPT] Continue from previous session (default prompt: "continue", run command only)
   --index N           Expand message at index N (issue command only)
   --index M,N         Expand message range from M to N (issue command only)
@@ -88,6 +90,7 @@ function parseArgs() {
         '--issues-dir',
         '--faq-dir',
         '--max',
+        '--model',
         '--git',
         '--no-git',
         '--prompt',
@@ -116,6 +119,7 @@ function parseArgs() {
     let continuePrompt = 'continue';
     const issueReferences = [];
     let issueIndex;
+    let model;
     // Parse arguments starting from index 1 (skip the command)
     for (let i = 1; i < args.length; i++) {
         if (args[i] === '--issues-dir' && i + 1 < args.length) {
@@ -130,6 +134,9 @@ function parseArgs() {
         }
         else if (args[i] === '--max' && i + 1 < args.length) {
             maxIterations = parseInt(args[++i], 10);
+        }
+        else if (args[i] === '--model' && i + 1 < args.length) {
+            model = args[++i];
         }
         else if (args[i] === '--git') {
             gitCommit = true;
@@ -174,7 +181,20 @@ function parseArgs() {
         command: command,
         issueReferences,
         issueIndex,
+        model,
     };
+}
+async function getModelFromUserSettings() {
+    try {
+        const settingsPath = path.join(os.homedir(), '.claude', 'settings.json');
+        const content = await fs.readFile(settingsPath, 'utf-8');
+        const settings = JSON.parse(content);
+        return settings.model;
+    }
+    catch {
+        // File doesn't exist or is invalid JSON - fail gracefully
+        return undefined;
+    }
 }
 async function ensureDirectories(issuesDir, faqDir) {
     const dirs = [
@@ -434,6 +454,12 @@ function logToolUse(block) {
 }
 function logSDKMessage(item) {
     switch (item.type) {
+        case 'system':
+            if (item.subtype === 'init') {
+                process.stdout.write(`Model: ${item.model}\n`);
+                process.stdout.write(`Agents: ${item.agents?.join(',')}\n`);
+            }
+            break;
         case 'assistant':
         case 'user':
             for (const chunk of item.message.content) {
@@ -462,7 +488,7 @@ function logSDKMessage(item) {
     }
 }
 async function runAgent(options) {
-    const { template, issuesDir, faqDir, issueFile, continueMode, continuePrompt } = options;
+    const { template, issuesDir, faqDir, issueFile, continueMode, continuePrompt, model } = options;
     const systemPrompt = buildSystemPrompt(template, issuesDir, faqDir, issueFile);
     console.log(`${colors.blue}\n--- Starting agent ---${colors.reset}`);
     const stream = query({
@@ -471,6 +497,7 @@ async function runAgent(options) {
             settingSources: ['local', 'project', 'user'],
             permissionMode: 'acceptEdits',
             continue: continueMode,
+            ...(model && { model }),
             canUseTool: async (toolName, input) => {
                 console.log(`${colors.red}Auto-denied tool:${colors.reset} ${toolName} ${String(input?.['command'] ?? input?.['file_path'] ?? '')}`);
                 return {
@@ -518,12 +545,15 @@ async function main() {
         await runIssue(config);
         return;
     }
+    // If no model specified via CLI, try to load from user settings
+    const model = config.model ?? (await getModelFromUserSettings());
     console.log(`${colors.cyan}Bueller? Bueller?${colors.reset}`);
     console.log(`${colors.cyan}-----------------${colors.reset}`);
     console.log(`Issues directory: ${config.issuesDir}`);
     console.log(`FAQ directory: ${config.faqDir}`);
     console.log(`Max iterations: ${config.maxIterations}`);
     console.log(`Git auto-commit: ${config.gitCommit ? 'enabled' : 'disabled'}`);
+    console.log(`Model: ${model ?? '(default)'}`);
     console.log(`Prompt file: ${config.promptFile}`);
     if (config.continueMode) {
         console.log(`Continue mode: enabled (prompt: "${config.continuePrompt}")`);
@@ -552,6 +582,7 @@ async function main() {
             issueFile: currentIssue,
             continueMode: config.continueMode && isFirstIteration,
             continuePrompt: config.continuePrompt,
+            model,
         });
         // Auto-commit if enabled and there's a current issue
         if (config.gitCommit && currentIssue) {
