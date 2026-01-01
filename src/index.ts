@@ -355,9 +355,7 @@ Issue files may be long. Use CLI commands to read:
 
 1. **Read the issue**: Parse the conversation history in [ISSUE_FILE_PATH] to understand the task
 2. **Work on the task**: Do what the issue requests. When encountering issues, always check for a relevant guide in [FAQ_DIR]/ first.
-3. **Verify**: Verify the following pass:
-   - [ ] \`pnpm run lint:fix\`
-   - [ ] \`pnpm run typecheck\`
+3. **Verify**: Verify lint, typechecking, and tests pass.
 4. **Append your response**: Add your summary to [ISSUE_FILE_PATH] using this format:
    \`\`\`
    ---
