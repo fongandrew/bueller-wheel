@@ -102,8 +102,6 @@ EXAMPLES:
   bueller-wheel issue p1-003-read-helper-002.md
   bueller-wheel issue p1-003 p2-005 --index 1
   bueller-wheel issue /path/to/issue.md --index 0,2
-
-For more information, visit: https://github.com/anthropics/bueller
 `);
 }
 
