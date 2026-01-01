@@ -140,36 +140,42 @@ The `open/` directory acts as an inbox for the agent on the current branch. The 
 
 ```bash
 # Start the agent loop with various options
-npx bueller-wheel --run
-npx bueller-wheel --git
-npx bueller-wheel --max 50
-npx bueller-wheel --continue "fix the bug"
+npx bueller-wheel run
+npx bueller-wheel run --no-git
+npx bueller-wheel run --max 50
+npx bueller-wheel run --continue "fix the bug"
 
 # Summarize issues
-npx bueller-wheel --summarize p1-003-task.md
-npx bueller-wheel --summarize p1-003.md p2-005.md --index 1
+npx bueller-wheel issue p1-003-task.md
+npx bueller-wheel issue p1-003.md p2-005.md --index 1
 
 # Combine with other options
-npx bueller-wheel --run --issues-dir ./my-issues --faq-dir ./my-faq
-npx bueller-wheel --max 50 --git --prompt ./my-prompt.md
+npx bueller-wheel run --issues-dir ./my-issues --faq-dir ./my-faq
+npx bueller-wheel run --max 50 --prompt ./my-prompt.md
 
 # Or if installed globally
-bueller-wheel --run
-bueller-wheel --git
+bueller-wheel run
+bueller-wheel run --no-git
 ```
 
-**Run Commands** (one required):
-- `--run`: Explicitly start the agent loop with defaults
-- `--git`: Enable automatic git commits and start the loop
-- `--max <number>`: Start with maximum N iterations (default: `25`)
-- `--continue [prompt]`: Continue from previous session. Optional prompt defaults to "continue" if not provided
-- `--summarize <issue...>`: Display abbreviated summaries of issue conversation history
+**Commands**:
+- `run`: Start the agent loop to process issues
+- `issue <issue...>`: Display abbreviated summaries of issue conversation history
 
-**Configuration Options**:
+**Run Options**:
+- `--git`: Enable automatic git commits (default: enabled)
+- `--no-git`: Disable automatic git commits
+- `--max <number>`: Maximum N iterations (default: `25`)
+- `--continue [prompt]`: Continue from previous session. Optional prompt defaults to "continue" if not provided
+
+**Configuration Options** (apply to both commands):
 - `--issues-dir <path>`: Issues directory (default: `./issues`)
 - `--faq-dir <path>`: FAQ directory (default: `./faq`)
-- `--prompt <path>`: Path to custom prompt template file (default: `<issues-dir>/prompt.md`)
-- `--index <N>` or `--index <M,N>`: Expand specific messages when using `--summarize` (see below)
+- `--model <model>`: Model to use (e.g., opus, sonnet, haiku, or full model ID)
+- `--prompt <path>`: Path to custom prompt template file (default: `<issues-dir>/prompt.md`, run only)
+
+**Issue Options**:
+- `--index <N>` or `--index <M,N>`: Expand specific messages (see below)
 
 ### Custom Prompt Templates
 
@@ -221,10 +227,10 @@ The `--continue` flag continues from the last Claude session with a custom promp
 
 ```bash
 # Continue with default "continue" prompt
-npx bueller-wheel --continue
+npx bueller-wheel run --continue
 
 # Continue with custom instructions
-npx bueller-wheel --continue "no use foo instead of bar"
+npx bueller-wheel run --continue "no use foo instead of bar"
 ```
 
 Note that only the immediate prior iteration is continued. The next iteration will start with a fresh context and the original prompt.
@@ -243,7 +249,7 @@ p0-002-git unknown
 
 ### Issue Summarization
 
-The `--summarize` command provides a quick way to review issue conversation history without opening files. This is especially useful for:
+The `issue` command provides a quick way to review issue conversation history without opening files. This is especially useful for:
 - Quickly understanding what happened in an issue
 - Reviewing multiple issues at once
 - Checking the status and progress of work
@@ -252,16 +258,16 @@ The `--summarize` command provides a quick way to review issue conversation hist
 
 ```bash
 # Summarize a single issue (by filename - searches across open/, review/, stuck/)
-npx bueller-wheel --summarize p1-003-task.md
+npx bueller-wheel issue p1-003-task.md
 
 # Summarize by partial filename
-npx bueller-wheel --summarize p1-003.md
+npx bueller-wheel issue p1-003.md
 
 # Summarize with full path
-npx bueller-wheel --summarize /path/to/issues/open/p1-003-task.md
+npx bueller-wheel issue /path/to/issues/open/p1-003-task.md
 
 # Summarize multiple issues
-npx bueller-wheel --summarize p1-003.md p1-004.md p2-001.md
+npx bueller-wheel issue p1-003.md p1-004.md p2-001.md
 ```
 
 **Summary Format:**
@@ -278,13 +284,13 @@ Use `--index` to expand specific messages to their full content:
 
 ```bash
 # Expand a single message at index 2
-npx bueller-wheel --summarize p1-003.md --index 2
+npx bueller-wheel issue p1-003.md --index 2
 
 # Expand a range of messages (indices 1 through 3)
-npx bueller-wheel --summarize p1-003.md --index 1,3
+npx bueller-wheel issue p1-003.md --index 1,3
 
 # Works with multiple issues (expands same indices for all)
-npx bueller-wheel --summarize p1-003.md p1-004.md --index 0,2
+npx bueller-wheel issue p1-003.md p1-004.md --index 0,2
 ```
 
 **Note:** Message indices are 0-based (first message is index 0).
