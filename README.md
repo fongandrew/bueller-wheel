@@ -12,7 +12,7 @@ mkdir -p issues/open
 echo "@user: Please create a test file with 'Hello World'" > issues/open/p0-100-my-task.md
 
 # Run bueller-wheel to complete the task
-npx bueller-wheel --run
+npx bueller-wheel run
 ```
 
 ## Why?
