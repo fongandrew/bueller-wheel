@@ -1,6 +1,6 @@
 {
 	"name": "bueller-wheel",
-	"version": "0.4.1",
+	"version": "0.4.2",
 	"description": "Headless Claude Code issue processor - A wrapper that runs Claude Code in a loop to process issues from a directory queue",
 	"type": "module",
 	"main": "dist/index.js",
