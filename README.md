@@ -1,5 +1,11 @@
 # Bueller Wheel
 
+---
+
+**Note:** This package has been superseded by [Dr. Done](https://github.com/fongandrew/dr-done).
+
+---
+
 > Life moves pretty fast. If you don't stop and look around once in a while, you could miss it.
 
 This is a headless issue processor that runs in a loop and uses Claude to resolve issues or ticket files written in markdown. It plays nicely with Claude Code and uses the sames settings config.
